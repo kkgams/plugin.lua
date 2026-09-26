@@ -1,0 +1,23 @@
+name: Verify component
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: DeterminateSystems/nix-installer-action@c5a866b6ab867e88becbed4467b93592bce69f8a # v21
+      - name: Verify licensing gate remains explicit
+        run: test -s LICENSING.md && test ! -e LICENSE
+      - name: Build and test independently
+        run: nix develop --command make test
+      - name: Validate artifact
+        run: nix develop --command wasm-tools validate dist/*.wasm

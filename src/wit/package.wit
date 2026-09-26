@@ -1,0 +1,44 @@
+/// Lua component for the GAMS component-model runtime.
+///
+/// Exports `gams:lua/lua@1.0.0` with `run(source)`. The component imports
+/// `gams:runtime/runtime@1.0.0` for blocking host/UI calls from Lua and native
+/// WASI filesystem interfaces for `require(...)` module loading. It does not
+/// import `gams:fs`; that proxy is for frontend filesystem access.
+///
+/// Lua scripts can call:
+///
+/// - `host.call(target, ...)`
+/// - `host.raw_call(target, args_json)`
+/// - `fs.read_text(path)`
+/// - `fs.read(path)` as an alias for `read_text`
+///
+/// `host.call` maps to `gams:runtime/runtime.call(target, args_json)` and blocks
+/// until the host/frontend responds. It JSON-encodes all arguments after
+/// `target` as an argument array, decodes the JSON response, unwraps single-field
+/// result envelopes `{ ok = value }`, and raises a Lua error for single-field
+/// `{ err = message }` envelopes or transport failures. Those errors are regular
+/// Lua errors and can be handled with `pcall`.
+///
+/// `host.raw_call` exposes the underlying string protocol directly.
+///
+/// `fs.read_text` reads a text file from the component's WASI preopens and
+/// returns it as a Lua string. Missing or unreadable files raise a Lua error.
+///
+/// `main()` is the script entrypoint. String return values are returned directly,
+/// `nil` is returned as `null`, and non-string values are JSON encoded. Use
+/// `json.null` when a table field or array slot must be encoded as JSON `null`;
+/// Lua `nil` still removes table fields and cannot be observed by the encoder.
+package gams:lua@1.0.0;
+
+interface lua {
+    run: func(source: string) -> result<string, string>;
+}
+
+world lua-plugin {
+    import gams:runtime/runtime@1.0.0;
+
+    import wasi:filesystem/types@0.2.0;
+    import wasi:filesystem/preopens@0.2.0;
+
+    export lua;
+}

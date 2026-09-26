@@ -1,0 +1,14 @@
+package gams:runtime@1.0.0;
+
+interface runtime {
+  /// Dynamic call from a WASM component to a concrete frontend view instance.
+  ///
+  /// `target` is a frontend-owned view instance id.
+  /// `args` is an opaque string owned by that view protocol. JSON is the
+  /// recommended initial encoding.
+  call: func(target: string, args: string) -> result<string, string>;
+}
+
+world imports {
+  import runtime;
+}
