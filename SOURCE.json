@@ -14,7 +14,7 @@
     "README.md": "7d9ebe7ab00c6c003773aee90c71c530e57ba219e3734a6efe333c45a524bdf6",
     "config.mk": "58db4017899e24fe0147052828796d9e62f937f6b7bff2dfae01114bec2ae4cd",
     "flake.lock": "3adbe3447e662145dd50a383489f62e7bfbe16996281e113b1fbac347eca3eae",
-    "flake.nix": "760df9d3cab2f7d134708ad51f3703eccb863c57ae30443057b3b583ad15ed67",
+    "flake.nix": "e328a1bede7724d259433fa00dca985af8ad01e5a6be27e716b87f0d61467173",
     "package-lock.json": "40cfb4ca047e01403fcf75b41edebd57deb3abec928a14fa78137676fc1bf4cb",
     "package.json": "64adbdc966e1195a6bb9ce0336b46e05b92f2f61f57dc230dc4d8123e64e6c00",
     "src/component.c": "16bffe68f1a9614a822293cfca65f003b7e86ef9d84cc9263f9a690251fafbad",
