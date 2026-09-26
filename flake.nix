@@ -74,7 +74,9 @@
           toolArtifact = toolArtifacts.${system};
           linuxPatching = {
             nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
-            buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib ];
+            # SDK 33 bundles libedit.so, which needs libtinfo.so.6 on Linux.
+            # Keep autoPatchelf strict: supply the library rather than ignoring it.
+            buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib pkgs.ncurses ];
           };
           mkReleaseTool = { pname, version, hash }:
             pkgs.stdenvNoCC.mkDerivation (linuxPatching // {
