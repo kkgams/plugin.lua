@@ -5,7 +5,7 @@
   "source_worktree_status": [],
   "repository": "plugin.lua",
   "files_sha256": {
-    ".github/workflows/verify.yml": "fd105ca89d22245e71a0d69fbc43bf2f8b5e562b03a804e41a518acbc9424de2",
+    ".github/workflows/verify.yml": "391a2b65dd89044159fbe526629b03a04b04326b7e399058ce8dce1720dcbacc",
     ".gitignore": "12be7d69664589a1ea44ea4f46b2ea1924d33dac8c474a4f7d2778a8ee9201ea",
     "CONTEXT.md": "d383e50f082097cc0843a69fea5bf0aded5f4dde2387a1b2cfafea89ef1e703e",
     "LICENSING.md": "d4b79d8b9ed3c42813d51368fef1ce1f441948b217977ab839e10b23b0262318",

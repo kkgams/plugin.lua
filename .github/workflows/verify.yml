@@ -3,7 +3,7 @@ name: Verify component
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [release]
   workflow_dispatch:
 
 permissions:
