@@ -1,6 +1,7 @@
 /build/
 /dist/
 /node_modules/
+/runtime-e2e/target/
 __pycache__/
 *.pyc
 .direnv/

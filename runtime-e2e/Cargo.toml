@@ -1,0 +1,9 @@
+[package]
+name = "lua-runtime-e2e"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+wasmtime = { version = "=44.0.1", features = ["component-model"] }
+wasmtime-wasi = "=44.0.1"

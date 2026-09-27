@@ -11,13 +11,13 @@ the Host's `gams:runtime/runtime@1.0.0` plus WASI filesystem interfaces.
 nix develop --command make test
 ```
 
-The standalone static test builds and validates the component, inspects its extracted
-WIT, and verifies vendored Lua/source invariants. It does not execute Lua and does not
-claim full runtime coverage. Runtime E2E remains blocked because jco 1.32.1 cannot
-translate this component's exception-handling core. Reusing the native Wasmtime path
-from the GAMS Host would import the Host runtime and a large Rust dependency closure;
-a small standalone host for the runtime import is still needed. This is also recorded
-in `PREPARATION.md`. Output is `dist/plugin.lua.wasm`.
+`make test` builds/validates the component and checks WIT/vendor source invariants.
+Because jco cannot transpile the exception-handling core, the branch-candidate and
+tag workflows additionally run `scripts/test-runtime-component.sh` with the locked
+standalone `runtime-e2e/` Wasmtime host. It executes the final WASM's `main()`
+result, a `host.call` bridge, and syntax-error diagnostics without the GAMS Host.
+Output is `dist/plugin.lua.wasm`.
 
-A fail-closed release pipeline scaffold is included; see `PUBLISHING.md`. No licensing texts have been approved or included. Vendored Lua and jsmn make the
-third-party review especially important; see `LICENSING.md` and `PREPARATION.md`.
+The owner approved Apache-2.0 for GAMS-authored code. Proposed vendored and linked
+third-party notices still need owner review before any public source push; see
+`LICENSING.md`, `THIRD-PARTY-REVIEW.md`, and `PUBLISHING.md`.

@@ -28,7 +28,7 @@ Lua `nil` removes a table field instead.
 - Runtime call targets are resolved by the Host's Plugin Manager, not by this Plugin.
 - The distribution artifact is `dist/plugin.lua.wasm`; Project installation maps it
   to `plugins/lua.comp.wasm`.
-- The repository's current `make test` is a static build, component validation, WIT,
-  and source-invariant check. It does not execute Lua. A real runtime E2E needs a
-  small standalone component-model host for the runtime import; the existing native
-  path is coupled to the larger GAMS Host and is not copied into this repository.
+- `make test` is a static build, component validation, WIT, and source-invariant
+  check. Candidate and tag workflows also exercise the final WASM using a locked
+  standalone Wasmtime component-model host for the runtime import, without copying
+  the larger GAMS Host. Hosted Linux confirmation remains a release gate.

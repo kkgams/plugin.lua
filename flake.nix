@@ -170,7 +170,7 @@
             packages = [ wkg pkgs.curl ];
           };
           default = pkgs.mkShell {
-            packages = [ odin wasm-tools wit-bindgen wasi-sdk pkgs.nodejs_24 pkgs.gnumake pkgs.coreutils pkgs.python3 pkgs.curl pkgs.bash ];
+            packages = [ odin wasm-tools wit-bindgen wasi-sdk pkgs.nodejs_24 pkgs.gnumake pkgs.coreutils pkgs.python3 pkgs.curl pkgs.bash pkgs.cargo pkgs.rustc ];
             shellHook = ''
               export WASI_SDK_PATH="${wasi-sdk}"
               export WASI_SYSROOT="$WASI_SDK_PATH/share/wasi-sysroot"

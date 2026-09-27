@@ -1,10 +1,12 @@
 # Publishing plugin.lua — NOT READY
 
-No owner-approved LICENSE or NOTICE exists in this extraction. This scaffold does
-not grant a license, approve third-party notices, or authorize publication.
-Lua runtime E2E is still blocked (jco rejects the exception-handling core); provide an independent component-model host. Review vendored Lua and jsmn provenance and notices.
+The owner approved Apache-2.0 for this repository's GAMS-authored code only.
+`NOTICE` and `THIRD-PARTY-REVIEW.md` are engineering proposals for review,
+**not** owner approval of third-party provenance or distribution. Do not push
+public source, set digest variables, upload candidates, or tag until reviewed.
+A pinned standalone Wasmtime component-model E2E tests the final candidate; review its hosted Linux result plus vendored Lua and jsmn notices.
 
-`make test` builds/tests without licensing texts. `make release-candidate` runs
+`make test` builds/tests without requiring licensing texts. `make release-candidate` runs
 those tests, then checks nonempty root LICENSE and NOTICE against this repository's
 owner-set `LICENSE_SHA256` and `NOTICE_SHA256` variables (lowercase SHA-256),
 embeds their exact bytes as `gams.license` and `gams.notice`, verifies them,
@@ -26,8 +28,8 @@ and SHA256SUMS. Verify GHCR package permissions/visibility before tagging.
 
 ## Owner-operated sequence (only after all blockers above are resolved)
 
-1. Review the final linked artifact inventory and exact LICENSE/NOTICE bytes;
-   remove/update the no-license warning in LICENSING.md only after approval.
+1. Review the final linked artifact inventory, open provenance questions and
+   exact LICENSE/NOTICE bytes in THIRD-PARTY-REVIEW.md and LICENSING.md.
 2. Set **repository-scoped Actions variables**, not secrets, independently for
    `kkgams/plugin.lua` (never copy another Unit's digests):
 
@@ -46,8 +48,8 @@ and SHA256SUMS. Verify GHCR package permissions/visibility before tagging.
    **A green build alone is not enough**: confirm the candidate was uploaded.
 4. Manually run `release.yml` **on the branch** to exercise its release shell
    without publishing: `gh workflow run release.yml -R kkgams/plugin.lua --ref release`.
-   For Lua, this job must first pass the independent runtime E2E gate; branch
-   `verify.yml`'s static test is not enough.
+   For Lua, **both the branch candidate and this rehearsal** require the
+   independent runtime E2E script; `make test`'s static checks are not enough.
 5. Only when the branch candidate and hosted release-shell run have passed,
    check that `v$(cat version.txt)` has never been pushed, then tag exactly that
    verified commit and push **only that immutable tag**:
@@ -57,5 +59,8 @@ and SHA256SUMS. Verify GHCR package permissions/visibility before tagging.
    git push origin "v$(cat version.txt)"
    ```
 
-   Review the GitHub Release assets and GHCR raw WASM anonymously afterward.
+   The tag workflow verifies the tag points to the current `release` head but
+   cannot know whether the owner inspected the prior candidate and rehearsal;
+   **pushing the tag is the owner's explicit release decision** after those
+   checks. Review the GitHub Release assets and GHCR raw WASM anonymously.
    If a pushed tag fails, fix the branch and use a new version; never retag.

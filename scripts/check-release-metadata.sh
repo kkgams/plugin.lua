@@ -7,6 +7,6 @@ version="$(cat version.txt)"
 if [[ "$GITHUB_REF" == refs/tags/* ]]; then
   [[ "$GITHUB_REF" == "refs/tags/v$version" ]] || { echo 'Tag differs from version.txt' >&2; exit 1; }
 else
-  [[ "$GITHUB_EVENT_NAME" == workflow_dispatch && "$GITHUB_REF_TYPE" == branch ]] || { echo 'Unexpected release ref' >&2; exit 1; }
+  [[ "$GITHUB_EVENT_NAME" == workflow_dispatch && "$GITHUB_REF_TYPE" == branch && "$GITHUB_REF" == refs/heads/release ]] || { echo 'Manual release rehearsal requires the release branch' >&2; exit 1; }
 fi
 bash scripts/check-licensing-digests.sh

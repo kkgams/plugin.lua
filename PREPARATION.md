@@ -13,15 +13,15 @@ those commands against the generated `plugin.lua` repository.
 - Required command: `nix develop --command make test`
 - Required artifact check: `nix develop --command wasm-tools validate dist/plugin.lua.wasm`
 - `make test` performs build, `wasm-tools validate`, extracted-WIT assertions, and vendored/source invariant checks only. It is explicitly a static test, not a Lua runtime E2E test.
-- Lua runtime E2E remains blocked: jco 1.32.1 rejects the exception-handling core, while extracting the native Wasmtime path from `cmd/app` would pull in the Host runtime and its large Rust dependency closure. A small standalone component-model host for `gams:runtime/runtime@1.0.0` is still required.
+- A pinned standalone Wasmtime component-model runner in `runtime-e2e/` executes the final notice-bearing candidate, including `host.call` and syntax-error behavior. Candidate and tag workflows require this runtime E2E; hosted Linux execution is still required.
 
 No timestamp or platform is asserted here because this generated repository does not
 carry an independently established validation record for its current bytes.
 
 ## Release blockers
 
-- Repository-owner license approval remains unresolved; see `LICENSING.md`.
-- Third-party provenance, notices, source obligations, and artifact inventory need approval.
+- Apache-2.0 was approved for GAMS-authored code; third-party provenance, notices,
+  source obligations, and the linked artifact inventory still need owner review.
 - Independent Linux CI evidence has not yet been recorded.
 - `prepare()` initializes no Git repository and performs no network publication.
 - A release scaffold exists, but must not be pushed to a public repository or tagged until licensing and distribution gates are reviewed.

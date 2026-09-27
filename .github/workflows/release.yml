@@ -34,9 +34,11 @@ jobs:
           bash scripts/test-release-oci-preflight.sh
           python3 -m unittest discover -s test -p 'test_*.py'
           nix develop --command make test
+          nix develop --command make release-candidate
           test -x scripts/test-runtime-component.sh
           nix develop --command bash scripts/test-runtime-component.sh
-          nix develop --command make release-candidate
+          nix develop --command bash scripts/record-build-evidence.sh dist/evidence
+          cat dist/evidence/wasi-sdk-VERSION
           nix develop .#release --command wkg --version
       # Manual branch dispatch verifies but never distributes.
       - name: Upload tagged candidate
@@ -49,6 +51,7 @@ jobs:
             dist/LICENSE
             dist/NOTICE
             dist/SHA256SUMS
+            dist/evidence/
           if-no-files-found: error
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
