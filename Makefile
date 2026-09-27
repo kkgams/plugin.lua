@@ -83,3 +83,11 @@ test: check-tools $(TEST_ARTIFACT)
 
 clean:
 	@rm -rf "$(BUILD_DIR)" "$(DIST_DIR)" node_modules
+
+# Distribution requires separately reviewed, nonempty licensing texts and repo vars.
+.PHONY: release-candidate
+release-candidate: test
+	@COMPONENT_SLUG=lua bash scripts/stage-candidate.sh
+	@$(MAKE) test
+	@python3 scripts/wasm-notices.py verify "$(COMPONENT)" --license LICENSE --notice NOTICE
+	@(cd "$(DIST_DIR)" && sha256sum --check SHA256SUMS)

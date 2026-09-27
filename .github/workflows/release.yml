@@ -1,0 +1,103 @@
+name: Release component
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Fail closed on identity, tag and licensing before installing tools
+        shell: bash
+        env:
+          APPROVED_LICENSE_SHA256: ${{ vars.LICENSE_SHA256 }}
+          APPROVED_NOTICE_SHA256: ${{ vars.NOTICE_SHA256 }}
+        run: bash scripts/check-release-metadata.sh
+      - name: Require the tag on the reviewed release branch head
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          git fetch --no-tags --depth=1 origin refs/heads/release
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - name: Test and stage exact reviewed candidate
+        env:
+          APPROVED_LICENSE_SHA256: ${{ vars.LICENSE_SHA256 }}
+          APPROVED_NOTICE_SHA256: ${{ vars.NOTICE_SHA256 }}
+        run: |
+          bash scripts/test-release-absent.sh
+          bash scripts/test-release-oci-preflight.sh
+          python3 -m unittest discover -s test -p 'test_*.py'
+          nix develop --command make test
+          test -x scripts/test-runtime-component.sh
+          nix develop --command bash scripts/test-runtime-component.sh
+          nix develop --command make release-candidate
+          nix develop .#release --command wkg --version
+      # Manual branch dispatch verifies but never distributes.
+      - name: Upload tagged candidate
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: lua-${{ github.ref_name }}
+          path: |
+            dist/plugin.lua.wasm
+            dist/LICENSE
+            dist/NOTICE
+            dist/SHA256SUMS
+          if-no-files-found: error
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Recheck immutable identity and owner-reviewed texts
+        env:
+          APPROVED_LICENSE_SHA256: ${{ vars.LICENSE_SHA256 }}
+          APPROVED_NOTICE_SHA256: ${{ vars.NOTICE_SHA256 }}
+        run: bash scripts/check-release-metadata.sh
+      - name: Recheck release branch head has not moved
+        run: |
+          git fetch --no-tags --depth=1 origin refs/heads/release
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
+      - name: Refuse existing GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/check-release-absent.sh
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: lua-${{ github.ref_name }}
+          path: dist
+      - name: Verify candidate exact bytes before publication
+        run: |
+          (cd dist && sha256sum --check SHA256SUMS)
+          cmp LICENSE dist/LICENSE
+          cmp NOTICE dist/NOTICE
+          python3 scripts/wasm-notices.py verify dist/plugin.lua.wasm --license LICENSE --notice NOTICE
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: OCI immutable-tag preflight
+        id: oci_preflight
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: nix develop .#release --command bash scripts/release-oci-preflight.sh "ghcr.io/kkgams/gams/lua:${GITHUB_REF_NAME#v}" dist/plugin.lua.wasm
+      - name: Push raw WASM only if absent
+        if: steps.oci_preflight.outputs.should_push == 'true'
+        run: nix develop .#release --command wkg oci push "ghcr.io/kkgams/gams/lua:${GITHUB_REF_NAME#v}" dist/plugin.lua.wasm
+      - name: Create checksummed GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --verify-tag --latest=false --title "plugin.lua $GITHUB_REF_NAME" --notes "Raw WASM: ghcr.io/kkgams/gams/lua:${GITHUB_REF_NAME#v}; reviewed LICENSE and NOTICE attached." dist/plugin.lua.wasm dist/LICENSE dist/NOTICE dist/SHA256SUMS

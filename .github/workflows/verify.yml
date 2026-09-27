@@ -1,23 +1,42 @@
 name: Verify component
-
 on:
   pull_request:
   push:
     branches: [release]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: DeterminateSystems/nix-installer-action@c5a866b6ab867e88becbed4467b93592bce69f8a # v21
-      - name: Verify licensing gate remains explicit
-        run: test -s LICENSING.md && test ! -e LICENSE
-      - name: Build and test independently
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Test publication safety gates (offline)
+        run: |
+          bash scripts/test-release-absent.sh
+          bash scripts/test-release-oci-preflight.sh
+          python3 -m unittest discover -s test -p 'test_*.py'
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - name: Test
         run: nix develop --command make test
-      - name: Validate artifact
-        run: nix develop --command wasm-tools validate dist/*.wasm
+      # No files or digests: still test, never distribute a binary.
+      - name: Stage owner-reviewed candidate
+        if: github.event_name == 'push' && github.ref == 'refs/heads/release' && vars.LICENSE_SHA256 != '' && vars.NOTICE_SHA256 != ''
+        env:
+          APPROVED_LICENSE_SHA256: ${{ vars.LICENSE_SHA256 }}
+          APPROVED_NOTICE_SHA256: ${{ vars.NOTICE_SHA256 }}
+        run: |
+          test "$GITHUB_REPOSITORY" = 'kkgams/plugin.lua'
+          nix develop --command make release-candidate
+      - name: Upload candidate
+        if: github.event_name == 'push' && github.ref == 'refs/heads/release' && vars.LICENSE_SHA256 != '' && vars.NOTICE_SHA256 != ''
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: lua-candidate-${{ github.sha }}
+          path: |
+            dist/plugin.lua.wasm
+            dist/LICENSE
+            dist/NOTICE
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7

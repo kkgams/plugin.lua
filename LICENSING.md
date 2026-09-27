@@ -12,5 +12,6 @@ artifact. Component-specific vendored sources (notably Lua and jsmn-derived code
 need provenance, license-text, notice, and redistribution review. Build-tool npm
 and Nix closures also require the appropriate source-distribution review.
 
-The verification workflow only builds and tests. It is not a release or publish
-workflow and grants no permission to distribute its artifacts.
+The verification workflow builds and tests without licensing approval. Its
+optional candidate upload and the separate release workflow fail closed on exact
+owner-reviewed LICENSE/NOTICE digests. See PUBLISHING.md; no approval exists yet.

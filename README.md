@@ -19,5 +19,5 @@ from the GAMS Host would import the Host runtime and a large Rust dependency clo
 a small standalone host for the runtime import is still needed. This is also recorded
 in `PREPARATION.md`. Output is `dist/plugin.lua.wasm`.
 
-No release/publish automation is included. Vendored Lua and jsmn make the
+A fail-closed release pipeline scaffold is included; see `PUBLISHING.md`. No licensing texts have been approved or included. Vendored Lua and jsmn make the
 third-party review especially important; see `LICENSING.md` and `PREPARATION.md`.

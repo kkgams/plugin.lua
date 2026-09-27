@@ -23,4 +23,5 @@ carry an independently established validation record for its current bytes.
 - Repository-owner license approval remains unresolved; see `LICENSING.md`.
 - Third-party provenance, notices, source obligations, and artifact inventory need approval.
 - Independent Linux CI evidence has not yet been recorded.
-- No Git repository was initialized and no network publication was performed.
+- `prepare()` initializes no Git repository and performs no network publication.
+- A release scaffold exists, but must not be pushed to a public repository or tagged until licensing and distribution gates are reviewed.

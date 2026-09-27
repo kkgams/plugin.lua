@@ -38,7 +38,8 @@
         "nixpkgs": "nixpkgs",
         "odin-src": "odin-src",
         "wasm-tools-src": "wasm-tools-src",
-        "wit-bindgen-src": "wit-bindgen-src"
+        "wit-bindgen-src": "wit-bindgen-src",
+        "wkg-src": "wkg-src"
       }
     },
     "wasm-tools-src": {
@@ -72,6 +73,23 @@
         "owner": "bytecodealliance",
         "ref": "v0.57.1",
         "repo": "wit-bindgen",
+        "type": "github"
+      }
+    },
+    "wkg-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1770404174,
+        "narHash": "sha256-G576caJ9oeYDFDIOP75mfkw6/JsxYyfDsVlFhb0RbIE=",
+        "owner": "bytecodealliance",
+        "repo": "wasm-pkg-tools",
+        "rev": "40ebd8210ec47cc6e14fddd105977de95815c704",
+        "type": "github"
+      },
+      "original": {
+        "owner": "bytecodealliance",
+        "ref": "v0.15.0",
+        "repo": "wasm-pkg-tools",
         "type": "github"
       }
     }
