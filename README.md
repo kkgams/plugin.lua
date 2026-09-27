@@ -18,6 +18,6 @@ standalone `runtime-e2e/` Wasmtime host. It executes the final WASM's `main()`
 result, a `host.call` bridge, and syntax-error diagnostics without the GAMS Host.
 Output is `dist/plugin.lua.wasm`.
 
-The owner approved Apache-2.0 for GAMS-authored code. Proposed vendored and linked
-third-party notices still need owner review before any public source push; see
+The owner approved Apache-2.0 for GAMS-authored code and reviewed the vendored
+and linked third-party notices. Hosted Linux candidate/E2E evidence remains; see
 `LICENSING.md`, `THIRD-PARTY-REVIEW.md`, and `PUBLISHING.md`.

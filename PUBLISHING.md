@@ -1,10 +1,10 @@
-# Publishing plugin.lua — NOT READY
+# Publishing plugin.lua — hosted review pending
 
-The owner approved Apache-2.0 for this repository's GAMS-authored code only.
-`NOTICE` and `THIRD-PARTY-REVIEW.md` are engineering proposals for review,
-**not** owner approval of third-party provenance or distribution. Do not push
-public source, set digest variables, upload candidates, or tag until reviewed.
-A pinned standalone Wasmtime component-model E2E tests the final candidate; review its hosted Linux result plus vendored Lua and jsmn notices.
+The owner approved Apache-2.0 for this repository's GAMS-authored code and
+reviewed its separate third-party NOTICE. A pushed matching tag is **not**
+authorized by that review alone: first verify the exact Linux candidate and
+release-shell rehearsal from the same `release` branch commit.
+The final candidate must pass the standalone Wasmtime E2E on hosted Linux.
 
 `make test` builds/tests without requiring licensing texts. `make release-candidate` runs
 those tests, then checks nonempty root LICENSE and NOTICE against this repository's
@@ -26,10 +26,10 @@ to replace different bytes at the OCI tag. The OCI artifact is raw WASM,
 not a package of licensing files; the GitHub Release includes LICENSE, NOTICE
 and SHA256SUMS. Verify GHCR package permissions/visibility before tagging.
 
-## Owner-operated sequence (only after all blockers above are resolved)
+## Owner-operated sequence
 
-1. Review the final linked artifact inventory, open provenance questions and
-   exact LICENSE/NOTICE bytes in THIRD-PARTY-REVIEW.md and LICENSING.md.
+1. Confirm the exact LICENSE/NOTICE bytes and linked inventory recorded in
+   THIRD-PARTY-REVIEW.md and LICENSING.md before setting digest variables.
 2. Set **repository-scoped Actions variables**, not secrets, independently for
    `kkgams/plugin.lua` (never copy another Unit's digests):
 

@@ -20,8 +20,10 @@ carry an independently established validation record for its current bytes.
 
 ## Release blockers
 
-- Apache-2.0 was approved for GAMS-authored code; third-party provenance, notices,
-  source obligations, and the linked artifact inventory still need owner review.
-- Independent Linux CI evidence has not yet been recorded.
+- The owner approved Apache-2.0 for GAMS-authored code and reviewed this
+  repository's third-party NOTICE. Hosted Linux candidate/link evidence is still
+  required before a version tag may authorize release.
 - `prepare()` initializes no Git repository and performs no network publication.
-- A release scaffold exists, but must not be pushed to a public repository or tagged until licensing and distribution gates are reviewed.
+- The release scaffold is ready for an owner-operated `release` branch push after
+  repository variables are set. Do not push a version tag until the exact hosted
+  candidate and branch release-shell run pass and are reviewed.
