@@ -1,5 +1,5 @@
 {
-  description = "GAMS Director compiler component 0.1.0";
+  description = "GAMS lua component 0.2.0";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/d233902339c02a9c334e7e593de68855ad26c4cb";
