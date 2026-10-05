@@ -1,14 +1,11 @@
 # Preparation evidence
 
-This repository is generated from working-tree source bytes. The ecosystem
-orchestrator records global source provenance and hashes separately.
+Historical source provenance and extraction hashes are recorded in `SOURCE.json`.
 
 ## Validation status
 
-The validation commands in the ecosystem record describe historical extraction
-validation and the checks required for this snapshot. `prepare()` does not execute
-or claim a current verification run. The main setup orchestrator must run and record
-those commands against the generated `plugin.lua` repository.
+Run the commands below against the current checkout and record their results.
+Historical extraction validation is not proof that the current checkout passes.
 
 - Required command: `nix develop --command make test`
 - Required artifact check: `nix develop --command wasm-tools validate dist/plugin.lua.wasm`
@@ -23,7 +20,6 @@ carry an independently established validation record for its current bytes.
 - The owner approved Apache-2.0 for GAMS-authored code and reviewed this
   repository's third-party NOTICE. Hosted Linux candidate/link evidence is still
   required before a version tag may authorize release.
-- `prepare()` initializes no Git repository and performs no network publication.
 - The release scaffold is ready for an owner-operated `release` branch push after
   repository variables are set. Do not push a version tag until the exact hosted
   candidate and branch release-shell run pass and are reviewed.
