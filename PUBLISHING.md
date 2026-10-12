@@ -1,13 +1,13 @@
-> **Prospective v0.2.0 maintenance preparation — NOT release-ready.**
-> Target: `plugin.lua` v0.2.0, `plugin.lua.wasm`, `ghcr.io/kkgams/gams/lua:0.2.0`.
+> **Prospective v0.2.1 maintenance preparation — NOT release-ready.**
+> Target: `plugin.lua` v0.2.1, `plugin.lua.wasm`, `ghcr.io/kkgams/gams/lua:0.2.1`.
 > Below is frozen historical documentation: existing GitHub Release URLs,
 > versioned examples and repair instructions refer to their original releases.
-> For a future v0.2.0 candidate, use the prepared distribution metadata;
+> For a future v0.2.1 candidate, use the prepared distribution metadata;
 > rebuild and run repository-owned locked toolchain/runtime tests, review
 > source drift, linked evidence and exact LICENSE/NOTICE/candidate digests.
 > Migrate the direct-release publisher to draft-first immutable-policy and
 > exact public-byte verification before any tag/OCI push/Pages publication.
-> Do not run the historical publishing commands as v0.2.0 instructions.
+> Do not run the historical publishing commands as v0.2.1 instructions.
 
 # Publishing plugin.lua — hosted review pending
 
