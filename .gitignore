@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 .direnv/
 .DS_Store
+
+/tools/
+/gams_modules/

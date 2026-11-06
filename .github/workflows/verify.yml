@@ -13,18 +13,15 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Test publication safety gates (offline)
         run: |
+          bash scripts/test-licensing-content.sh
           bash scripts/test-release-absent.sh
           bash scripts/test-release-oci-preflight.sh
           python3 -m unittest discover -s test -p 'test_*.py'
       - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
       - name: Test
         run: nix develop --command make test
-      # No files or digests: still test, never distribute a binary.
-      - name: Stage owner-reviewed candidate
-        if: github.event_name == 'push' && github.ref == 'refs/heads/release' && vars.LICENSE_SHA256 != '' && vars.NOTICE_SHA256 != ''
-        env:
-          APPROVED_LICENSE_SHA256: ${{ vars.LICENSE_SHA256 }}
-          APPROVED_NOTICE_SHA256: ${{ vars.NOTICE_SHA256 }}
+      - name: Stage validated candidate
+        if: github.event_name == 'push' && github.ref == 'refs/heads/release'
         run: |
           test "$GITHUB_REPOSITORY" = 'kkgams/plugin.lua'
           nix develop --command make release-candidate
@@ -33,7 +30,7 @@ jobs:
           nix develop --command bash scripts/record-build-evidence.sh dist/evidence
           cat dist/evidence/wasi-sdk-VERSION
       - name: Upload candidate
-        if: github.event_name == 'push' && github.ref == 'refs/heads/release' && vars.LICENSE_SHA256 != '' && vars.NOTICE_SHA256 != ''
+        if: github.event_name == 'push' && github.ref == 'refs/heads/release'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: lua-candidate-${{ github.sha }}
