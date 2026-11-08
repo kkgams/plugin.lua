@@ -1,27 +1,15 @@
 {
-  description = "GAMS lua component 0.2.1";
+  description = "GAMS Lua component development and distribution tools";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/d233902339c02a9c334e7e593de68855ad26c4cb";
-    odin-src = {
-      url = "github:odin-lang/Odin/db0cd79633fe05069dc4f9248d2796eb8ec3b858";
-      flake = false;
-    };
-    wasm-tools-src = {
-      url = "github:bytecodealliance/wasm-tools/v1.248.0";
-      flake = false;
-    };
-    wit-bindgen-src = {
-      url = "github:bytecodealliance/wit-bindgen/v0.57.1";
-      flake = false;
-    };
     wkg-src = {
       url = "github:bytecodealliance/wasm-pkg-tools/v0.15.0";
       flake = false;
     };
   };
 
-  outputs = { self, nixpkgs, odin-src, wasm-tools-src, wit-bindgen-src, wkg-src }:
+  outputs = { nixpkgs, wkg-src, ... }:
     let
       systems = [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
@@ -29,30 +17,6 @@
       devShells = forAllSystems (system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          odin = pkgs.odin.overrideAttrs (old: {
-            version = "dev-2026-08-db0cd7963";
-            src = odin-src;
-            # Keep the Nix/Darwin linker purity patch. The unrelated raylib
-            # patch from nixpkgs targets an older Odin tree and no longer applies.
-            patches = [ (builtins.elemAt old.patches 0) ];
-            postPatch = ''
-              substituteInPlace src/build_settings.cpp \
-                --replace-fail "arm64-apple-macosx" "arm64-apple-darwin"
-              substituteInPlace build_odin.sh \
-                --replace-fail 'GIT_DATE=$(date +"%Y-%m")' 'GIT_DATE="2026-08"; CPPFLAGS="$CPPFLAGS -DGIT_SHA=\"db0cd7963\""'
-              patchShebangs --build build_odin.sh
-            '';
-            installPhase = ''
-              runHook preInstall
-              mkdir -p "$out/bin" "$out/share"
-              cp odin "$out/bin/odin"
-              cp -R base core vendor shared "$out/share/"
-              wrapProgram "$out/bin/odin" \
-                --prefix PATH : "${pkgs.lib.makeBinPath (with pkgs.llvmPackages; [ bintools llvm clang lld ])}" \
-                --set-default ODIN_ROOT "$out/share"
-              runHook postInstall
-            '';
-          });
           toolArtifacts = {
             aarch64-darwin = {
               platform = "aarch64-macos";
@@ -166,11 +130,8 @@
             checkFlags = [ "--skip=check" ];
           };
         in {
-          release = pkgs.mkShell {
-            packages = [ wkg pkgs.curl ];
-          };
           default = pkgs.mkShell {
-            packages = [ odin wasm-tools wit-bindgen wasi-sdk pkgs.nodejs_24 pkgs.gnumake pkgs.coreutils pkgs.python3 pkgs.curl pkgs.bash pkgs.cargo pkgs.rustc ];
+            packages = [ wasm-tools wit-bindgen wasi-sdk wkg pkgs.gnumake pkgs.coreutils pkgs.python3 pkgs.curl pkgs.bash pkgs.cargo pkgs.rustc pkgs.nodejs_24 pkgs.perl pkgs.git pkgs.unzip pkgs.gnutar ];
             shellHook = ''
               export WASI_SDK_PATH="${wasi-sdk}"
               export WASI_SYSROOT="$WASI_SDK_PATH/share/wasi-sysroot"

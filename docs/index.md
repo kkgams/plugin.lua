@@ -1,66 +1,34 @@
 ---
-title: Development
+title: Lua Runtime Plugin
 status: reference
 ---
 
-# plugin.lua development
+# Lua Runtime Plugin
 
-Build and verify the component with its pinned toolchain:
+[GAMS](https://github.com/kkgams/gams) WebAssembly component embedding Lua 5.5 with JSON, blocking Host calls and capability-restricted filesystem imports.
 
-```sh
-nix develop --command make build
-nix develop --command make test
-```
+| Item | Source → output | Screenshot |
+| --- | --- | --- |
+| Lua runtime component | `src/component.c`, `src/runtime.lua`, `src/wit/` → `build.nosync/plugin.lua.wasm` | Not applicable |
 
-## Runtime calls and imports
+Distribution sources include raw-WASM OCI at `ghcr.io/kkgams/gams/lua:<version>` and GitHub Release assets. OCI tags use the numeric version without the Git tag's `v` prefix. Pin specific versions rather than `latest`. The Host supplies the runtime call interface and WASI preopens; there is no sibling checkout requirement.
 
-`run(source, entry, args-json, source-path)` keeps the `gams:lua/lua@1.0.0`
-export but breaks the previous one-argument call. Supply null for absent options.
-The global entry defaults to `main` and must exist; `args-json` is an optional
-JSON argument array unpacked into it. Pass optional context as an ordinary argument,
-for example `[{"pluginId":"lua","runId":"r1"}]`. A named metadata entry can run
-without `main`; top-level source statements still execute.
+See [[api|Runtime API]] for named entry functions, arguments, imports and Host calls.
 
-`import("./nodes/add.lua")` returns the file's explicit exports. Relative paths
-resolve from the importing Lua file, including later calls from exported functions.
-The optional `source-path` anchors the root script; without it imports use the
-existing granted root. Normalized paths are cached per run. Cycles and nil exports
-are errors. Imports are text-only and retain WASI filesystem restrictions.
-`require` is unchanged. See README for module/context examples and limitations.
+## Development
 
-Exercise the actual component with the pinned Wasmtime runner:
+Use `nix develop` for the pinned WASI SDK, wit-bindgen, wasm-tools, Rust/Cargo and OCI tooling. The shell also supplies Node.js 24 for the dependency-free wiki engine, Make, Python 3, Git, curl, tar, unzip and shasum. No Node package installation is used.
 
-```sh
-nix develop --command bash scripts/test-runtime-component.sh
-```
+| Command | Purpose |
+| --- | --- |
+| `make build` | Incrementally compile `build.nosync/plugin.lua.wasm` |
+| `make package` | Prepare the component, notices and checksums under `build.nosync/`, without publication |
+| `make test` | Run native Wasmtime runtime tests against a test-compiled component |
+| `make open` | Build without tests, then open local `gams.json` in the released Host (macOS Apple Silicon) |
+| `make tools/gams.app` | Download the released Host and its notices only when absent |
+| `make serve-docs` | Preview documentation; independent `DOCS_PORT=8080` |
+| `make docs` | Build documentation into `build.nosync/site/` |
+| `make validate-docs` | Validate wiki content |
+| `make clean` | Remove known recreatable build output, downloaded Host/notices and configured Unit download caches; preserve supplied/unrelated files and refuse tracked paths or directory symlinks |
 
-## Local Project and documentation
-
-```sh
-nix develop --command make open  # build, then open this repository's gams.json
-make serve-docs                 # http://localhost:8080; DOCS_PORT overrides
-make validate-docs
-make docs                       # portable site under build/site/
-```
-
-`make open` builds `dist/plugin.lua.wasm` and explicitly sets `GAMS_APP_CWD`
-to this repository. The local Project loads that component and the pinned
-released Files View to inspect Project files; it is not an API demo.
-The shell uses the released layout provider.
-No sibling source checkout is required.
-
-`make tools/gams.app` downloads the released macOS Apple Silicon Host only
-when absent and retains its notices under `tools/gams-release-notices/`.
-Existing downloads are not updated implicitly; macOS security checks remain
-intact. The first download and Project launch require network access.
-Pinned dependencies are declared in `gams.json`; Host caches live in ignored
-`gams_modules/`. Native GUI behavior requires separate verification.
-
-Documentation uses pinned justgook/wiki v1.4.0, with ignored engine/output
-under `build/`. `build-docs` remains a build alias. GitHub Pages runs `make docs`
-on every push to `release`, independently of component release tags.
-Enable **Settings → Pages → Source → GitHub Actions**. Existing component
-build, runtime tests, candidate checks and matching-tag release rules are unchanged.
-
-See the repository README and licensing/publication documents for API details,
-coverage limits and existing release gates.
+The local Project opens a Files View with pinned released UI dependencies, not a Lua API demo. Existing Host downloads are preserved and macOS security checks remain intact.

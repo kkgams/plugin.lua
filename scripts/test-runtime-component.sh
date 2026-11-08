@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# Exercise final plugin.lua WASM through a small standalone Wasmtime component host.
+# Exercise the test-only Lua component with the locked native Wasmtime host.
 set -euo pipefail
-
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-manifest="$repo_root/runtime-e2e/Cargo.toml"
-component="$repo_root/dist/plugin.lua.wasm"
-[[ -f "$manifest" ]] || { echo "missing runtime E2E manifest: $manifest" >&2; exit 1; }
-[[ -f "$component" ]] || { echo "missing built Lua component: $component (run make build first)" >&2; exit 1; }
+export LUA_COMPONENT_PATH="${LUA_COMPONENT_PATH:-$repo_root/build.nosync/test/plugin.lua.wasm}"
+export CARGO_TARGET_DIR="$repo_root/build.nosync/runtime-target"
+mkdir -p "$repo_root/build.nosync/tmp"
+export TMPDIR="$repo_root/build.nosync/tmp"
+[[ -f "$LUA_COMPONENT_PATH" ]] || { echo "missing test component: $LUA_COMPONENT_PATH (run make test first)" >&2; exit 1; }
 
-if [[ -n "${IN_NIX_SHELL:-}" ]]; then
-  # The WASI SDK prepends a wasm-targeting `clang` to PATH. Cargo's native C
-  # build scripts (e.g. zstd) must use Nix's *host* compiler instead.
-  : "${NIX_CC:?Nix host C compiler required for runtime E2E}"
-  export CC="$NIX_CC/bin/cc" CXX="$NIX_CC/bin/c++" AR="$NIX_CC/bin/ar"
-  cargo run --locked --manifest-path "$manifest" -- "$component" "$@"
-else
-  command -v nix >/dev/null || { echo 'nix required outside the repo development shell' >&2; exit 1; }
-  nix develop "$repo_root" --command cargo run --locked --manifest-path "$manifest" -- "$component" "$@"
+if [[ -z "${IN_NIX_SHELL:-}" ]]; then
+  exec nix develop "$repo_root" --command bash "$repo_root/scripts/test-runtime-component.sh" "$@"
 fi
+# The WASI SDK's clang targets WASM; Cargo's C build scripts need the host SDK.
+: "${NIX_CC:?Nix host C compiler required for runtime E2E}"
+export CC="$NIX_CC/bin/cc" CXX="$NIX_CC/bin/c++" AR="$NIX_CC/bin/ar"
+if [[ $# -eq 0 ]]; then
+  exec cargo test --locked --manifest-path "$repo_root/runtime-e2e/Cargo.toml" -- --nocapture
+fi
+exec cargo run --locked --manifest-path "$repo_root/runtime-e2e/Cargo.toml" -- "$LUA_COMPONENT_PATH" "$@"

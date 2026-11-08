@@ -22,7 +22,7 @@ impl WasiView for State {
 fn main() -> Result<()> {
     let mut args = env::args_os().skip(1);
     let path = PathBuf::from(args.next().ok_or_else(|| {
-        wasmtime::Error::msg("usage: lua-runtime-e2e <dist/plugin.lua.wasm>")
+        wasmtime::Error::msg("usage: lua-runtime-e2e <component.wasm>")
     })?);
     let extra: Vec<_> = args.collect();
     let manual = if extra.is_empty() { None } else {
@@ -34,6 +34,19 @@ fn main() -> Result<()> {
               extra[5].to_string_lossy().into_owned()))
     };
 
+    run_component(path, manual)
+}
+
+type ManualRun = (String, PathBuf, String, String, String);
+
+#[test]
+fn lua_runtime_cases() -> Result<()> {
+    let path = env::var_os("LUA_COMPONENT_PATH")
+        .ok_or_else(|| wasmtime::Error::msg("LUA_COMPONENT_PATH must select the test component"))?;
+    run_component(PathBuf::from(path), None)
+}
+
+fn run_component(path: PathBuf, manual: Option<ManualRun>) -> Result<()> {
     let mut config = Config::new();
     config.wasm_component_model(true);
     config.wasm_exceptions(true);

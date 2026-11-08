@@ -3,113 +3,79 @@ SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DELETE_ON_ERROR:
 MAKEFLAGS += --no-builtin-rules --warn-undefined-variables
+.DEFAULT_GOAL := build
 
-include config.mk
-
-BUILD_DIR ?= build
-DIST_DIR ?= dist
-ODIN ?= odin
+PYTHON ?= python3
+CURL ?= curl
 WIT_BINDGEN ?= wit-bindgen
 WASM_TOOLS ?= wasm-tools
 WASI_P2_CC ?= wasm32-wasip2-clang
-NPM ?= npm
-NODE ?= node
+export TMPDIR := $(abspath build.nosync/tmp)
+export PYTHONPYCACHEPREFIX := $(abspath build.nosync/pycache)
+export XDG_CACHE_HOME := $(abspath build.nosync/cache)
 
-SOURCE_FILES := $(shell find src -type f | sort)
-WIT_SOURCES := $(filter %.wit,$(SOURCE_FILES))
-GEN_DIR := $(BUILD_DIR)/bindings
-ODIN_OBJ := $(BUILD_DIR)/core.o.wasm
-UNSTRIPPED := $(BUILD_DIR)/$(REPOSITORY).unstripped.wasm
-COMPONENT := $(DIST_DIR)/$(REPOSITORY).wasm
-TRANSPILED := $(BUILD_DIR)/jco/$(REPOSITORY).js
-
-ifeq ($(HAS_ODIN),1)
-CORE_OBJECT := $(ODIN_OBJ)
-else
-CORE_OBJECT :=
-endif
-
-ifeq ($(HAS_LUA),1)
-TEST_ARTIFACT := $(COMPONENT)
 LUA_DIR := src/vendor/lua
 LUA_SOURCES := lapi.c lauxlib.c lbaselib.c lcode.c lcorolib.c lctype.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmathlib.c lmem.c loadlib.c lobject.c lopcodes.c lparser.c lstate.c lstring.c lstrlib.c ltable.c ltablib.c ltm.c lundump.c lutf8lib.c lvm.c lzio.c
 COMPONENT_SOURCES := src/component.c src/shim/wasm_setjmp_shim.c src/shim/wasm_eh_tags.s $(addprefix $(LUA_DIR)/,$(LUA_SOURCES))
+COMPONENT_HEADERS := $(wildcard src/*.h src/shim/*.h $(LUA_DIR)/*.h)
+WIT_SOURCES := $(shell find src/wit -type f -name '*.wit' | sort)
 COMPONENT_CFLAGS := -Dl_signalT=int -I$(LUA_DIR) -Isrc -mexception-handling -mmultivalue -mreference-types -mllvm -wasm-enable-sjlj -mllvm -wasm-use-legacy-eh=false
-else
-TEST_ARTIFACT := $(TRANSPILED)
-COMPONENT_SOURCES := src/component.c $(CORE_OBJECT)
-COMPONENT_CFLAGS :=
-endif
 
-.PHONY: all build test clean check-tools
-all: build
-build: $(COMPONENT)
+.PHONY: build package test clean open serve-docs validate-docs docs
+build: build.nosync/plugin.lua.wasm
+package: build.nosync/plugin.lua.wasm build.nosync/LICENSE build.nosync/NOTICE build.nosync/SHA256SUMS
 
-check-tools:
-	@for tool in $(WIT_BINDGEN) $(WASM_TOOLS) $(WASI_P2_CC) $(NPM) $(NODE); do command -v "$$tool" >/dev/null || { echo "missing tool: $$tool" >&2; exit 1; }; done
-	@if [ "$(HAS_ODIN)" = 1 ]; then command -v "$(ODIN)" >/dev/null || { echo "missing tool: $(ODIN)" >&2; exit 1; }; fi
+# Each build has its own generated bindings and bootstrap header. Tests never
+# create the release component or package files.
+define component_rules
+$(1)/runtime.h: src/runtime.lua Makefile | build.nosync/tmp
+	@mkdir -p "$$(@D)"
+	@$(PYTHON) -c 'import json, pathlib, sys; source = pathlib.Path(sys.argv[1]).read_text(); pathlib.Path(sys.argv[2]).write_text("static const char runtime_bootstrap[] =\n" + json.dumps(source) + ";\n")' "$$<" "$$@"
 
-$(DIST_DIR):
+$(1)/plugin.lua.unstripped.wasm: $(COMPONENT_SOURCES) $(COMPONENT_HEADERS) $(WIT_SOURCES) $(1)/runtime.h Makefile
+	@mkdir -p "$(1)/bindings"
+	@(cd "$(1)/bindings" && $(WIT_BINDGEN) c "$(abspath src/wit)" -w gams:lua/lua-plugin@1.0.0)
+	@$(WASI_P2_CC) -o "$$@" -mexec-model=reactor -I"$(1)/bindings" -I"$(1)" -O2 -DNDEBUG $(COMPONENT_CFLAGS) \
+		"$(1)/bindings/lua_plugin.c" $(COMPONENT_SOURCES) \
+		"$(1)/bindings/lua_plugin_component_type.o" -Wl,--strip-all
+
+$(1)/plugin.lua.stripped.wasm: $(1)/plugin.lua.unstripped.wasm Makefile
+	@$(WASM_TOOLS) strip -a "$$<" -o "$$@"
+
+$(1)/plugin.lua.wasm: $(1)/plugin.lua.stripped.wasm LICENSE NOTICE licenses/THIRD-PARTY.txt scripts/embed-notices.py Makefile
+	@$(PYTHON) -B scripts/embed-notices.py "$$<" "$$@"
+endef
+$(eval $(call component_rules,build.nosync))
+$(eval $(call component_rules,build.nosync/test))
+
+build.nosync/tmp:
 	@mkdir -p "$@"
 
-$(ODIN_OBJ): $(wildcard src/*.odin) $(wildcard src/jsmn/*.odin)
-	@mkdir -p "$(dir $@)"
-	@rm -f "$@" "$(patsubst %.wasm,%.obj,$@)"
-	@$(ODIN) build ./src -target:wasi_wasm32 -build-mode:obj --no-entry-point -o:speed -out:$@
-	@if [ -f "$(patsubst %.wasm,%.obj,$@)" ]; then mv "$(patsubst %.wasm,%.obj,$@)" "$@"; fi
-	@test -f "$@"
-
-build.nosync/runtime.h: src/runtime.lua Makefile
+build.nosync/LICENSE: LICENSE Makefile
 	@mkdir -p "$(@D)"
-	@$(PYTHON) -c 'import json, pathlib, sys; source = pathlib.Path(sys.argv[1]).read_text(); pathlib.Path(sys.argv[2]).write_text("static const char runtime_bootstrap[] =\n" + json.dumps(source) + ";\n")' "$<" "$@"
+	@cp "$<" "$@"
 
-$(UNSTRIPPED): $(SOURCE_FILES) $(CORE_OBJECT) build.nosync/runtime.h config.mk Makefile
-	@rm -rf "$(GEN_DIR)"
-	@mkdir -p "$(GEN_DIR)"
-	@(cd "$(GEN_DIR)" && $(WIT_BINDGEN) c "$(abspath src/wit)" -w "$(WORLD)")
-	@$(WASI_P2_CC) -o "$@" -mexec-model=reactor -I"$(GEN_DIR)" -Ibuild.nosync -O2 -DNDEBUG $(COMPONENT_CFLAGS) \
-		"$(GEN_DIR)/$(COMPONENT_NAME).c" $(COMPONENT_SOURCES) \
-		"$(GEN_DIR)/$(COMPONENT_NAME)_component_type.o" -Wl,--strip-all
+build.nosync/NOTICE: NOTICE licenses/THIRD-PARTY.txt Makefile
+	@mkdir -p "$(@D)"
+	@cat NOTICE licenses/THIRD-PARTY.txt > "$@"
 
-$(COMPONENT): $(UNSTRIPPED) | $(DIST_DIR)
-	@$(WASM_TOOLS) strip -a "$<" -o "$@"
+build.nosync/SHA256SUMS: build.nosync/plugin.lua.wasm build.nosync/LICENSE build.nosync/NOTICE Makefile
+	@cd build.nosync && shasum -a 256 plugin.lua.wasm LICENSE NOTICE > SHA256SUMS
 
-node_modules/.package-lock.json: package.json package-lock.json
-	@$(NPM) ci
-
-$(TRANSPILED): $(COMPONENT) node_modules/.package-lock.json
-	@rm -rf "$(BUILD_DIR)/jco"
-	@./node_modules/.bin/jco transpile "$<" -o "$(BUILD_DIR)/jco" --name "$(REPOSITORY)"
-
-test: check-tools $(TEST_ARTIFACT)
-	@$(WASM_TOOLS) validate "$(COMPONENT)"
-	@$(NODE) "$(TEST_SCRIPT)"
+test: build.nosync/test/plugin.lua.wasm
+	@bash scripts/test-runtime-component.sh
 
 clean:
-	@rm -rf "$(BUILD_DIR)" "$(DIST_DIR)" node_modules
+	@$(PYTHON) scripts/clean.py
 
-# Distribution validates required licensing texts and exact embedded bytes.
-.PHONY: release-candidate
-release-candidate: test
-	@COMPONENT_SLUG=lua bash scripts/stage-candidate.sh
-	@$(MAKE) test
-	@python3 scripts/wasm-notices.py verify "$(COMPONENT)" --license LICENSE --notice NOTICE
-	@(cd "$(DIST_DIR)" && sha256sum --check SHA256SUMS)
-
-
-# Local Project and portable documentation.
-PYTHON ?= python3
-CURL ?= curl
 GAMS_RELEASE_API ?= https://api.github.com/repos/kkgams/gams/releases/latest
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
 DOCS_PORT ?= 8080
 WIKI_VERSION := v1.4.0
 WIKI_REPOSITORY := https://github.com/justgook/wiki
-WIKI_MAKEFILE := build/wiki-$(WIKI_VERSION).mk
-WIKI_ENGINE := $(abspath build/wiki-$(WIKI_VERSION))
-
-.PHONY: open serve-docs validate-docs build-docs docs
+WIKI_MAKEFILE := build.nosync/wiki-$(WIKI_VERSION).mk
+WIKI_ENGINE := $(abspath build.nosync/wiki-$(WIKI_VERSION))
 
 # Retain an existing app; never update it implicitly.
 tools/gams.app:
@@ -117,8 +83,8 @@ tools/gams.app:
 		{ echo 'GAMS release download requires macOS Apple Silicon' >&2; exit 1; }
 	@test ! -e tools/gams-release-notices || \
 		{ echo 'tools/gams-release-notices already exists; move it aside before reinstalling GAMS' >&2; exit 1; }
-	@mkdir -p tools
-	@set -eu; stage=$$(mktemp -d "tools/.gams-download.XXXXXX"); \
+	@mkdir -p tools build.nosync/tmp
+	@set -eu; stage=$$(mktemp -d "build.nosync/tmp/gams-download.XXXXXX"); \
 		trap 'rm -rf "$$stage"' EXIT; \
 		$(CURL) --fail --location --silent --show-error "$(GAMS_RELEASE_API)" --output "$$stage/release.json"; \
 		url=$$($(PYTHON) -c 'import json, sys; release = json.load(open(sys.argv[1])); assets = [a for a in release["assets"] if a["name"].startswith("GAMS-") and a["name"].endswith("-macos-aarch64.zip")]; assert len(assets) == 1, "Expected exactly one GAMS macOS Apple Silicon ZIP asset"; print(assets[0]["browser_download_url"])' "$$stage/release.json"); \
@@ -131,15 +97,13 @@ tools/gams.app:
 		mv "$$stage/GAMS.app" "$@"
 
 open: build tools/gams.app
-	GAMS_APP_CWD="$(CURDIR)" ./tools/gams.app/Contents/MacOS/gams
+	GAMS_APP_CWD="$(CURDIR)" GAMS_CONFIG="$(CURDIR)/gams.json" ./tools/gams.app/Contents/MacOS/gams
 
-$(WIKI_MAKEFILE):
+$(WIKI_MAKEFILE): | build.nosync/tmp
 	@mkdir -p "$(@D)"
-	@set -eu; trap 'rm -f "$@.tmp"' EXIT; \
-		$(CURL) --fail --location --retry 3 "$(WIKI_REPOSITORY)/raw/$(WIKI_VERSION)/Makefile" -o "$@.tmp"; \
-		mv "$@.tmp" "$@"
+	@trap 'rm -f "$@.tmp"' EXIT
+	@$(CURL) --fail --location --retry 3 "$(WIKI_REPOSITORY)/raw/$(WIKI_VERSION)/Makefile" -o "$@.tmp"
+	@mv "$@.tmp" "$@"
 
-docs: build-docs
-
-serve-docs validate-docs build-docs: $(WIKI_MAKEFILE)
-	$(MAKE) -f "$(WIKI_MAKEFILE)" "$(patsubst %-docs,%,$@)" WIKI_REPOSITORY="$(WIKI_REPOSITORY)" WIKI_VERSION="$(WIKI_VERSION)" WIKI_ENGINE="$(WIKI_ENGINE)" WIKI_SOURCE="$(abspath docs)" WIKI_OUTPUT="$(abspath build/site)" PORT="$(DOCS_PORT)"
+serve-docs validate-docs docs: $(WIKI_MAKEFILE)
+	$(MAKE) -f "$(WIKI_MAKEFILE)" "$(if $(filter docs,$@),build,$(patsubst %-docs,%,$@))" WIKI_REPOSITORY="$(WIKI_REPOSITORY)" WIKI_VERSION="$(WIKI_VERSION)" WIKI_ENGINE="$(WIKI_ENGINE)" WIKI_SOURCE="$(abspath docs)" WIKI_OUTPUT="$(abspath build.nosync/site)" PORT="$(DOCS_PORT)"
