@@ -1196,31 +1196,27 @@ static void open_lua_libs(lua_State *L) {
   configure_package_searchers(L);
 }
 
-static int run_script(lua_State *L, const uint8_t *code, size_t code_len) {
-  int status = luaL_loadbufferx(L, (const char *)code, code_len, "=(input)", "t");
-  if (status != LUA_OK) {
-    return status;
-  }
-  status = lua_pcall(L, 0, 0, 0);
-  if (status != LUA_OK) {
-    return status;
-  }
+#include "runtime.h"
 
-  lua_getglobal(L, "main");
-  if (lua_isnil(L, -1)) {
-    lua_pop(L, 1);
-    lua_pushnil(L);
-    return LUA_OK;
-  }
-  if (!lua_isfunction(L, -1)) {
-    lua_pop(L, 1);
-    lua_pushliteral(L, "global 'main' exists but is not a function");
-    return LUA_ERRRUN;
-  }
+static void push_optional_string(lua_State *L, lua_plugin_string_t *value) {
+  if (value == NULL) lua_pushnil(L);
+  else lua_pushlstring(L, (const char *)value->ptr, value->len);
+}
+
+static int run_script(lua_State *L, lua_plugin_string_t *source,
+                      lua_plugin_string_t *entry, lua_plugin_string_t *args_json,
+                      lua_plugin_string_t *source_path) {
+  int status = luaL_loadbufferx(L, runtime_bootstrap, sizeof(runtime_bootstrap) - 1,
+                                "=runtime", "t");
+  if (status != LUA_OK) return status;
   status = lua_pcall(L, 0, 1, 0);
-  if (status != LUA_OK) {
-    return status;
-  }
+  if (status != LUA_OK) return status;
+  push_optional_string(L, source);
+  push_optional_string(L, entry);
+  push_optional_string(L, args_json);
+  push_optional_string(L, source_path);
+  status = lua_pcall(L, 4, 1, 0);
+  if (status != LUA_OK) return status;
   if (pending_host_error != NULL || pending_host_error_len > 0) {
     lua_pushlstring(L,
                     pending_host_error != NULL ? pending_host_error : "host.call failed",
@@ -1251,7 +1247,9 @@ static int encode_return_value(lua_State *L, lua_plugin_string_t *ret) {
   return 1;
 }
 
-bool exports_gams_lua_lua_run(lua_plugin_string_t *source, lua_plugin_string_t *ret,
+bool exports_gams_lua_lua_run(lua_plugin_string_t *source, lua_plugin_string_t *entry,
+                              lua_plugin_string_t *args_json, lua_plugin_string_t *source_path,
+                              lua_plugin_string_t *ret,
                               lua_plugin_string_t *err) {
   lua_State *L;
   int status;
@@ -1271,7 +1269,7 @@ bool exports_gams_lua_lua_run(lua_plugin_string_t *source, lua_plugin_string_t *
 
   open_lua_libs(L);
 
-  status = run_script(L, source->ptr, source->len);
+  status = run_script(L, source, entry, args_json, source_path);
   if (status != LUA_OK) {
     set_lua_error_string(L, err);
     lua_close(L);

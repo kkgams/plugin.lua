@@ -3,9 +3,9 @@
 ## Language
 
 **Lua Runtime Plugin**: The singleton WASM Plugin built by this repository. It embeds
-Lua 5.5 and exports `gams:lua/lua@1.0.0` with `run(source)`.
+Lua 5.5 and exports `gams:lua/lua@1.0.0` with `run(source, entry?, args-json?, source-path?)`.
 
-**Script Entrypoint**: The Lua `main()` function called after source evaluation. Its
+**Script Entrypoint**: A selected global Lua function (default `main`) called after source evaluation with the optional JSON argument array unpacked. Missing or non-function entries are errors. Its
 return becomes the WIT result: strings pass through, `nil` becomes JSON `null`, and
 other values are JSON encoded.
 
@@ -18,6 +18,16 @@ protocol without Host Call's argument/result conversion.
 
 **Lua Filesystem Access**: `fs.read_text`, `fs.read`, and module loading backed by
 Host-granted WASI preopened directories. This is not an import of `gams:fs`.
+
+**Import**: `import(path)` reads a Lua file through the existing WASI preopens,
+executes it in a module-local environment, and returns its explicit exports.
+Relative paths resolve from the importing chunk's lexical source path, including
+calls from functions invoked later. Normalized paths are cached per run; cycles
+and modules returning nil are errors. `require` retains its existing loader.
+
+**Run Context**: Optional caller-supplied context such as `pluginId` and `runId`
+is an ordinary argument: `args-json = '[{"pluginId":"lua","runId":"r1"}]'`.
+Metadata functions can be selected without defining or invoking `main`.
 
 **JSON Null**: `json.null`, the explicit sentinel for a JSON null inside a Lua table;
 Lua `nil` removes a table field instead.

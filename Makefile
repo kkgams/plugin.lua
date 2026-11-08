@@ -59,11 +59,15 @@ $(ODIN_OBJ): $(wildcard src/*.odin) $(wildcard src/jsmn/*.odin)
 	@if [ -f "$(patsubst %.wasm,%.obj,$@)" ]; then mv "$(patsubst %.wasm,%.obj,$@)" "$@"; fi
 	@test -f "$@"
 
-$(UNSTRIPPED): $(SOURCE_FILES) $(CORE_OBJECT) config.mk Makefile
+build.nosync/runtime.h: src/runtime.lua Makefile
+	@mkdir -p "$(@D)"
+	@$(PYTHON) -c 'import json, pathlib, sys; source = pathlib.Path(sys.argv[1]).read_text(); pathlib.Path(sys.argv[2]).write_text("static const char runtime_bootstrap[] =\n" + json.dumps(source) + ";\n")' "$<" "$@"
+
+$(UNSTRIPPED): $(SOURCE_FILES) $(CORE_OBJECT) build.nosync/runtime.h config.mk Makefile
 	@rm -rf "$(GEN_DIR)"
 	@mkdir -p "$(GEN_DIR)"
 	@(cd "$(GEN_DIR)" && $(WIT_BINDGEN) c "$(abspath src/wit)" -w "$(WORLD)")
-	@$(WASI_P2_CC) -o "$@" -mexec-model=reactor -I"$(GEN_DIR)" -O2 -DNDEBUG $(COMPONENT_CFLAGS) \
+	@$(WASI_P2_CC) -o "$@" -mexec-model=reactor -I"$(GEN_DIR)" -Ibuild.nosync -O2 -DNDEBUG $(COMPONENT_CFLAGS) \
 		"$(GEN_DIR)/$(COMPONENT_NAME).c" $(COMPONENT_SOURCES) \
 		"$(GEN_DIR)/$(COMPONENT_NAME)_component_type.o" -Wl,--strip-all
 

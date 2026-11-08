@@ -3,6 +3,9 @@ PLUGIN_WIT_WORLD := gams:lua/lua-plugin@1.0.0
 PLUGIN_COMPONENT_NAME := lua_plugin
 
 LUA_COMP_DIR := $(PLUGIN_PATH)/vendor/lua
+LUA_RUNTIME_BUILD_DIR ?= $(abspath $(PLUGIN_PATH)/../build.nosync)
+LUA_RUNTIME_PYTHON ?= python3
+LUA_RUNTIME_HEADER := $(LUA_RUNTIME_BUILD_DIR)/runtime.h
 
 PLUGIN_COMPONENT_SOURCES := \
   $(PLUGIN_PATH)/component.c \
@@ -42,6 +45,7 @@ PLUGIN_COMPONENT_CFLAGS := \
   -Dl_signalT=int \
   -I$(LUA_COMP_DIR) \
   -I$(PLUGIN_PATH) \
+  -I$(LUA_RUNTIME_BUILD_DIR) \
   -mexception-handling \
   -mmultivalue \
   -mreference-types \
@@ -52,5 +56,11 @@ PLUGIN_COMPONENT_EXTRA_DEPS := \
   $(PLUGIN_PATH)/plugin.mk \
   $(PLUGIN_COMPONENT_SOURCES) \
   $(PLUGIN_PATH)/jsmn.h \
+  $(PLUGIN_PATH)/runtime.lua \
+  $(LUA_RUNTIME_HEADER) \
   $(wildcard $(PLUGIN_PATH)/shim/*.h) \
   $(wildcard $(LUA_COMP_DIR)/*.h)
+
+$(LUA_RUNTIME_HEADER): $(PLUGIN_PATH)/runtime.lua $(PLUGIN_PATH)/plugin.mk
+	@mkdir -p "$(@D)"
+	@$(LUA_RUNTIME_PYTHON) -c 'import json, pathlib, sys; source = pathlib.Path(sys.argv[1]).read_text(); pathlib.Path(sys.argv[2]).write_text("static const char runtime_bootstrap[] =\n" + json.dumps(source) + ";\n")' "$<" "$@"

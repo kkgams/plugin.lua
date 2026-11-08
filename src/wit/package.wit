@@ -1,6 +1,6 @@
 /// Lua component for the GAMS component-model runtime.
 ///
-/// Exports `gams:lua/lua@1.0.0` with `run(source)`. The component imports
+/// Exports `gams:lua/lua@1.0.0` with configurable `run`. The component imports
 /// `gams:runtime/runtime@1.0.0` for blocking host/UI calls from Lua and native
 /// WASI filesystem interfaces for `require(...)` module loading. It does not
 /// import `gams:fs`; that proxy is for frontend filesystem access.
@@ -24,14 +24,21 @@
 /// `fs.read_text` reads a text file from the component's WASI preopens and
 /// returns it as a Lua string. Missing or unreadable files raise a Lua error.
 ///
-/// `main()` is the script entrypoint. String return values are returned directly,
+/// `import(path)` returns a module's explicit exports. Relative paths resolve
+/// lexically from source-path or the importing file, and normalized paths are
+/// cached per run. Cycles and nil exports are errors. Reads remain WASI-scoped.
+/// Without source-path, relative imports start at the granted filesystem root.
+///
+/// The selected global entry (default `main`) must be a function. String results pass through,
 /// `nil` is returned as `null`, and non-string values are JSON encoded. Use
 /// `json.null` when a table field or array slot must be encoded as JSON `null`;
 /// Lua `nil` still removes table fields and cannot be observed by the encoder.
 package gams:lua@1.0.0;
 
 interface lua {
-    run: func(source: string) -> result<string, string>;
+    /// args-json is an optional JSON array unpacked into the selected global function.
+    /// entry defaults to main; source-path anchors relative imports and diagnostics.
+    run: func(source: string, entry: option<string>, args-json: option<string>, source-path: option<string>) -> result<string, string>;
 }
 
 world lua-plugin {

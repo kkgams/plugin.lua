@@ -12,6 +12,28 @@ nix develop --command make build
 nix develop --command make test
 ```
 
+## Runtime calls and imports
+
+`run(source, entry, args-json, source-path)` keeps the `gams:lua/lua@1.0.0`
+export but breaks the previous one-argument call. Supply null for absent options.
+The global entry defaults to `main` and must exist; `args-json` is an optional
+JSON argument array unpacked into it. Pass optional context as an ordinary argument,
+for example `[{"pluginId":"lua","runId":"r1"}]`. A named metadata entry can run
+without `main`; top-level source statements still execute.
+
+`import("./nodes/add.lua")` returns the file's explicit exports. Relative paths
+resolve from the importing Lua file, including later calls from exported functions.
+The optional `source-path` anchors the root script; without it imports use the
+existing granted root. Normalized paths are cached per run. Cycles and nil exports
+are errors. Imports are text-only and retain WASI filesystem restrictions.
+`require` is unchanged. See README for module/context examples and limitations.
+
+Exercise the actual component with the pinned Wasmtime runner:
+
+```sh
+nix develop --command bash scripts/test-runtime-component.sh
+```
+
 ## Local Project and documentation
 
 ```sh

@@ -13,8 +13,8 @@ if [[ -n "${IN_NIX_SHELL:-}" ]]; then
   # build scripts (e.g. zstd) must use Nix's *host* compiler instead.
   : "${NIX_CC:?Nix host C compiler required for runtime E2E}"
   export CC="$NIX_CC/bin/cc" CXX="$NIX_CC/bin/c++" AR="$NIX_CC/bin/ar"
-  cargo run --locked --manifest-path "$manifest" -- "$component"
+  cargo run --locked --manifest-path "$manifest" -- "$component" "$@"
 else
   command -v nix >/dev/null || { echo 'nix required outside the repo development shell' >&2; exit 1; }
-  nix develop "$repo_root" --command cargo run --locked --manifest-path "$manifest" -- "$component"
+  nix develop "$repo_root" --command cargo run --locked --manifest-path "$manifest" -- "$component" "$@"
 fi
