@@ -32,12 +32,18 @@ modules = ROOT / "gams_modules"
 if modules.is_symlink():
     raise SystemExit("Refusing symlink in clean path: gams_modules")
 for source in sources:
+    entry = None
+    if isinstance(source, dict):
+        source = source["$file"]
+        if isinstance(source, dict):
+            entry = source.get("entry")
+            source = source["url"]
     url = urlsplit(source)
     if url.scheme not in ("http", "https"):
         continue
     key = hashlib.sha256(source.encode("utf-8")).hexdigest()
     if url.path.lower().endswith(".zip"):
-        if not url.fragment:
+        if not url.fragment and (not isinstance(entry, str) or not entry):
             raise SystemExit(f"ZIP Unit requires an entry selector: {source}")
         path = key
     else:
