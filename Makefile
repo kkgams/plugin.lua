@@ -97,7 +97,7 @@ tools/gams.app:
 		mv "$$stage/GAMS.app" "$@"
 
 open: build tools/gams.app
-	GAMS_APP_CWD="$(CURDIR)" GAMS_CONFIG="$(CURDIR)/gams.json" ./tools/gams.app/Contents/MacOS/gams
+	GAMS_APP_CWD="$(CURDIR)" GAMS_CONFIG="gams.json" ./tools/gams.app/Contents/MacOS/gams
 
 $(WIKI_MAKEFILE): | build.nosync/tmp
 	@mkdir -p "$(@D)"
