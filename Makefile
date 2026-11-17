@@ -19,6 +19,7 @@ LUA_SOURCES := lapi.c lauxlib.c lbaselib.c lcode.c lcorolib.c lctype.c ldebug.c 
 COMPONENT_SOURCES := src/component.c src/shim/wasm_setjmp_shim.c src/shim/wasm_eh_tags.s $(addprefix $(LUA_DIR)/,$(LUA_SOURCES))
 COMPONENT_HEADERS := $(wildcard src/*.h src/shim/*.h $(LUA_DIR)/*.h)
 WIT_SOURCES := $(shell find src/wit -type f -name '*.wit' | sort)
+component_compile_flags = -I$(1)/bindings -I$(1) -O2 -DNDEBUG $(COMPONENT_CFLAGS)
 COMPONENT_CFLAGS := -Dl_signalT=int -I$(LUA_DIR) -Isrc -mexception-handling -mmultivalue -mreference-types -mllvm -wasm-enable-sjlj -mllvm -wasm-use-legacy-eh=false
 
 .PHONY: build package test clean open serve-docs validate-docs docs
@@ -32,10 +33,12 @@ $(1)/runtime.h: src/runtime.lua Makefile | build.nosync/tmp
 	@mkdir -p "$$(@D)"
 	@$(PYTHON) -c 'import json, pathlib, sys; source = pathlib.Path(sys.argv[1]).read_text(); pathlib.Path(sys.argv[2]).write_text("static const char runtime_bootstrap[] =\n" + json.dumps(source) + ";\n")' "$$<" "$$@"
 
-$(1)/plugin.lua.unstripped.wasm: $(COMPONENT_SOURCES) $(COMPONENT_HEADERS) $(WIT_SOURCES) $(1)/runtime.h Makefile
+$(1)/bindings/lua_plugin.h $(1)/bindings/lua_plugin.c $(1)/bindings/lua_plugin_component_type.o &: $(WIT_SOURCES) Makefile | build.nosync/tmp
 	@mkdir -p "$(1)/bindings"
 	@(cd "$(1)/bindings" && $(WIT_BINDGEN) c "$(abspath src/wit)" -w gams:lua/lua-plugin@1.0.0)
-	@$(WASI_P2_CC) -o "$$@" -mexec-model=reactor -I"$(1)/bindings" -I"$(1)" -O2 -DNDEBUG $(COMPONENT_CFLAGS) \
+
+$(1)/plugin.lua.unstripped.wasm: $(COMPONENT_SOURCES) $(COMPONENT_HEADERS) $(1)/bindings/lua_plugin.h $(1)/bindings/lua_plugin.c $(1)/bindings/lua_plugin_component_type.o $(1)/runtime.h Makefile
+	@$(WASI_P2_CC) -o "$$@" -mexec-model=reactor $(call component_compile_flags,$(1)) \
 		"$(1)/bindings/lua_plugin.c" $(COMPONENT_SOURCES) \
 		"$(1)/bindings/lua_plugin_component_type.o" -Wl,--strip-all
 
@@ -47,6 +50,9 @@ $(1)/plugin.lua.wasm: $(1)/plugin.lua.stripped.wasm LICENSE NOTICE licenses/THIR
 endef
 $(eval $(call component_rules,build.nosync))
 $(eval $(call component_rules,build.nosync/test))
+
+compile_commands.json: Makefile flake.lock scripts/compile-commands.py build.nosync/runtime.h build.nosync/bindings/lua_plugin.h build.nosync/bindings/lua_plugin.c
+	@$(PYTHON) scripts/compile-commands.py "$(WASI_P2_CC)" $(call component_compile_flags,build.nosync) -- build.nosync/bindings/lua_plugin.c $(COMPONENT_SOURCES) > "$@"
 
 build.nosync/tmp:
 	@mkdir -p "$@"

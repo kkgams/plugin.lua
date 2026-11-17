@@ -29,6 +29,6 @@ Use `nix develop` for the pinned WASI SDK, wit-bindgen, wasm-tools, Rust/Cargo a
 | `make serve-docs` | Preview documentation; independent `DOCS_PORT=8080` |
 | `make docs` | Build documentation into `build.nosync/site/` |
 | `make validate-docs` | Validate wiki content |
-| `make clean` | Remove known recreatable build output, downloaded Host/notices and configured Unit download caches; preserve supplied/unrelated files and refuse tracked paths or directory symlinks |
+| `make clean` | Remove all of `build.nosync/`, `tools/` and `gams_modules/`, including unmarked contents; refuse tracked files and symlinks before deleting anything. |
 
 The local Project opens a Files View with pinned released UI dependencies, not a Lua API demo. Existing Host downloads are preserved and macOS security checks remain intact.

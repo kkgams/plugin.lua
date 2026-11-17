@@ -27,6 +27,6 @@ Use `nix develop` for pinned WASI SDK, wit-bindgen, wasm-tools, Rust/Cargo and O
 | `make tools/gams.app` | Download the Host and its notices only when absent |
 | `make serve-docs` | Preview pinned justgook/wiki documentation; independent `DOCS_PORT=8080` |
 | `make docs` / `make validate-docs` | Build documentation into `build.nosync/site/` / validate it |
-| `make clean` | Remove known recreatable build output, downloaded Host/notices and configured Unit download caches; preserve supplied/unrelated files and refuse tracked paths or directory symlinks |
+| `make clean` | Remove all of `build.nosync/`, `tools/` and `gams_modules/`, including unmarked contents; refuse tracked files and symlinks before deleting anything. |
 
 The local Project loads the built component and pinned released UI dependencies. It opens a Files View, not a Lua API demo. Existing downloaded Hosts are not updated implicitly; macOS security checks remain intact.
