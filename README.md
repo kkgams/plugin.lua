@@ -20,6 +20,7 @@ Use `nix develop` for pinned WASI SDK, wit-bindgen, wasm-tools, Rust/Cargo and O
 
 | Command | Purpose |
 | --- | --- |
+| `make compile_commands.json` | Generate the ignored local clangd database and required headers; rebuild after Makefile changes (`make -B compile_commands.json` after compiler/environment overrides) |
 | `make build` | Incrementally compile `build.nosync/plugin.lua.wasm`, including embedded notices |
 | `make package` | Prepare the component, license/notices and checksums under `build.nosync/`; never publish |
 | `make test` | Run the existing native Wasmtime runtime tests against a test-compiled component |

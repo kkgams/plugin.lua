@@ -6,3 +6,5 @@ __pycache__/
 /tools/
 /gams_modules/
 /build.nosync/
+
+/compile_commands.json
