@@ -1,0 +1,51 @@
+# C-registered APIs from src/component.c; import is installed by src/runtime.lua.
+# Selene 0.32.0 has no lua54/lua55 library. This covers the runtime's current
+# source, not all Lua 5.5 syntax or standard-library differences.
+base: lua53
+
+globals:
+  table.create:
+    args:
+      - type: number
+      - type: number
+        required: false
+  fs.read_text:
+    args:
+      - type: string
+  fs.read:
+    args:
+      - type: string
+  json.decode:
+    args:
+      - type: string
+  json.encode:
+    args:
+      - type: any
+  json.array:
+    args:
+      - type: table
+        required: false
+  json.object:
+    args:
+      - type: table
+        required: false
+  json.is_array:
+    args:
+      - type: any
+  json.is_object:
+    args:
+      - type: any
+  json.null:
+    property: read-only
+  host.call:
+    args:
+      - type: string
+      - type: "..."
+        required: false
+  host.raw_call:
+    args:
+      - type: string
+      - type: string
+  import:
+    args:
+      - type: string

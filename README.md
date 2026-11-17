@@ -30,4 +30,6 @@ Use `nix develop` for pinned WASI SDK, wit-bindgen, wasm-tools, Rust/Cargo and O
 | `make docs` / `make validate-docs` | Build documentation into `build.nosync/site/` / validate it |
 | `make clean` | Remove all of `build.nosync/`, `tools/` and `gams_modules/`, including unmarked contents; refuse tracked files and symlinks before deleting anything. |
 
+Editor diagnostics use `.luarc.json` for Lua 5.5 and runtime globals, plus `selene.toml` / `runtime.yml` for Selene with complexity warnings above 15. Selene 0.32.0 uses its Lua 5.3 library base with explicit runtime additions; it does not fully validate Lua 5.5. Its `validate-config` command currently crashes on the complexity configuration; normal linting works.
+
 The local Project loads the built component and pinned released UI dependencies. It opens a Files View, not a Lua API demo. Existing downloaded Hosts are not updated implicitly; macOS security checks remain intact.

@@ -1,0 +1,8 @@
+# Selene 0.32.0 ships a Lua 5.3 library; runtime.yml declares runtime additions.
+std = "runtime"
+
+[lints]
+high_cyclomatic_complexity = "warn"
+
+[config.high_cyclomatic_complexity]
+maximum_complexity = 15
