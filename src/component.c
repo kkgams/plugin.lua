@@ -838,6 +838,8 @@ static int lua_host_call(lua_State *L) {
   }
   lua_pop(L, 1);
 
+  /* Reserve slot 2 so lua_replace cannot pop the payload itself for zero args. */
+  lua_settop(L, 2);
   if (encoded_args.len == 0) {
     lua_pushliteral(L, "[]");
   } else {

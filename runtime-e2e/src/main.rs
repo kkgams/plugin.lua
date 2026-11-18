@@ -66,7 +66,19 @@ fn run_component(path: PathBuf, manual: Option<ManualRun>) -> Result<()> {
         |mut cx,
          (target, args): (String, String)|
          -> Result<(std::result::Result<String, String>,)> {
-            if target != "e2e/echo" || args != "[\"hello\",7]" {
+            let expected_args = match target.as_str() {
+                "e2e/echo" => "[\"hello\",7]",
+                "random/seeded-random::get-seed" => "[]",
+                "e2e/one" => "[\"hello\"]",
+                "e2e/null" => "[null]",
+                "e2e/null-boundaries" => "[null,\"hello\",null]",
+                _ => {
+                    return Err(wasmtime::Error::msg(format!(
+                        "unexpected target {target:?}"
+                    )))
+                }
+            };
+            if args != expected_args {
                 return Err(wasmtime::Error::msg(format!(
                     "unexpected gams:runtime/runtime.call({target:?}, {args:?})"
                 )));
@@ -146,6 +158,11 @@ fn run_component(path: PathBuf, manual: Option<ManualRun>) -> Result<()> {
         ("function main() return import('/project/../outside.lua') end", None, None, Some("/project/root.lua"), Err("file not found or not readable")),
         (r"function main() return import('./bad\0.lua') end", None, None, Some("/project/root.lua"), Err("invalid source/import path")),
         ("function main() return 42 end", None, None, None, Ok("42")),
+        ("function main() return host.call('random/seeded-random::get-seed') end", None, None, None, Ok("bridge-ok")),
+        ("function main() return host.raw_call('random/seeded-random::get-seed', '[]') end", None, None, None, Ok(r#"{"ok":"bridge-ok"}"#)),
+        ("function main() return host.call('e2e/one', 'hello') end", None, None, None, Ok("bridge-ok")),
+        ("function main() return host.call('e2e/null', json.null) end", None, None, None, Ok("bridge-ok")),
+        ("function main() return host.call('e2e/null-boundaries', json.null, 'hello', json.null) end", None, None, None, Ok("bridge-ok")),
         ("function main() return host.call('e2e/echo', 'hello', 7) end", None, None, None, Ok("bridge-ok")),
         ("function graph() return 12 end", Some("graph"), None, None, Ok("12")),
         ("function main(ctx) return ctx.pluginId .. ':' .. ctx.runId end", None, Some(r#"[{"pluginId":"lua","runId":"r1"}]"#), None, Ok("lua:r1")),
@@ -182,7 +199,7 @@ fn run_component(path: PathBuf, manual: Option<ManualRun>) -> Result<()> {
             )));
         }
     }
-    if store.data().bridge_calls != 1 {
+    if store.data().bridge_calls != 6 {
         return Err(wasmtime::Error::msg("unexpected bridge count"));
     }
     println!("Lua component E2E passed: {} runtime cases", cases.len());
