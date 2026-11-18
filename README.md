@@ -16,11 +16,11 @@ See [Runtime API](docs/api.md) for examples, JSON/Host call behavior and limitat
 
 ## Development
 
-Use `nix develop` for pinned WASI SDK, wit-bindgen, wasm-tools, Rust/Cargo and OCI tooling. The shell also supplies Node.js 24 for the dependency-free wiki engine, Make, Python 3, Git, curl, tar, unzip and shasum. No Node package installation is used.
+Use `nix develop` for pinned WASI SDK, wit-bindgen, wasm-tools, Rust/Cargo/rustfmt and OCI tooling. The shell also supplies Node.js 24 for the dependency-free wiki engine, Make, Python 3, Git, curl, tar, unzip and shasum. No Node package installation is used.
 
 | Command | Purpose |
 | --- | --- |
-| `make compile_commands.json` | Generate the ignored local clangd database and required headers; rebuild after Makefile changes (`make -B compile_commands.json` after compiler/environment overrides) |
+| `make compile_commands.json` | Generate clangd inputs and required headers under ignored `build.nosync/`; the database and index cache stay there (`make -B compile_commands.json` after compiler/environment overrides) |
 | `make build` | Incrementally compile `build.nosync/plugin.lua.wasm`, including embedded notices |
 | `make package` | Prepare the component, license/notices and checksums under `build.nosync/`; never publish |
 | `make test` | Run the existing native Wasmtime runtime tests against a test-compiled component |

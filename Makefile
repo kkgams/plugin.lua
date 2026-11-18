@@ -22,7 +22,7 @@ WIT_SOURCES := $(shell find src/wit -type f -name '*.wit' | sort)
 component_compile_flags = -I$(1)/bindings -I$(1) -O2 -DNDEBUG $(COMPONENT_CFLAGS)
 COMPONENT_CFLAGS := -Dl_signalT=int -I$(LUA_DIR) -Isrc -mexception-handling -mmultivalue -mreference-types -mllvm -wasm-enable-sjlj -mllvm -wasm-use-legacy-eh=false
 
-.PHONY: build package test clean open serve-docs validate-docs docs
+.PHONY: build package test clean open serve-docs validate-docs docs compile_commands.json
 build: build.nosync/plugin.lua.wasm
 package: build.nosync/plugin.lua.wasm build.nosync/LICENSE build.nosync/NOTICE build.nosync/SHA256SUMS
 
@@ -51,8 +51,11 @@ endef
 $(eval $(call component_rules,build.nosync))
 $(eval $(call component_rules,build.nosync/test))
 
-compile_commands.json: Makefile flake.lock scripts/compile-commands.py build.nosync/runtime.h build.nosync/bindings/lua_plugin.h build.nosync/bindings/lua_plugin.c
-	@$(PYTHON) scripts/compile-commands.py "$(WASI_P2_CC)" $(call component_compile_flags,build.nosync) -- build.nosync/bindings/lua_plugin.c $(COMPONENT_SOURCES) > "$@"
+compile_commands.json: build.nosync/compile_commands.json
+
+build.nosync/compile_commands.json: Makefile flake.nix flake.lock scripts/compile-commands.py $(COMPONENT_SOURCES) $(COMPONENT_HEADERS) build.nosync/runtime.h build.nosync/bindings/lua_plugin.h build.nosync/bindings/lua_plugin.c | build.nosync/tmp
+	@$(PYTHON) scripts/compile-commands.py "$(WASI_P2_CC)" $(call component_compile_flags,build.nosync) -- build.nosync/bindings/lua_plugin.c $(COMPONENT_SOURCES) > "$@.tmp"
+	@mv "$@.tmp" "$@"
 
 build.nosync/tmp:
 	@mkdir -p "$@"

@@ -21,17 +21,24 @@ impl WasiView for State {
 
 fn main() -> Result<()> {
     let mut args = env::args_os().skip(1);
-    let path = PathBuf::from(args.next().ok_or_else(|| {
-        wasmtime::Error::msg("usage: lua-runtime-e2e <component.wasm>")
-    })?);
+    let path = PathBuf::from(
+        args.next()
+            .ok_or_else(|| wasmtime::Error::msg("usage: lua-runtime-e2e <component.wasm>"))?,
+    );
     let extra: Vec<_> = args.collect();
-    let manual = if extra.is_empty() { None } else {
+    let manual = if extra.is_empty() {
+        None
+    } else {
         if extra.len() != 6 || extra[0] != "--run" {
             return Err(wasmtime::Error::msg("usage: lua-runtime-e2e COMPONENT [--run SOURCE_FILE PREOPEN_DIR ENTRY ARGS_JSON SOURCE_PATH] (use '-' for absent options; preopen mounts at /project)"));
         }
-        Some((std::fs::read_to_string(&extra[1])?, PathBuf::from(&extra[2]),
-              extra[3].to_string_lossy().into_owned(), extra[4].to_string_lossy().into_owned(),
-              extra[5].to_string_lossy().into_owned()))
+        Some((
+            std::fs::read_to_string(&extra[1])?,
+            PathBuf::from(&extra[2]),
+            extra[3].to_string_lossy().into_owned(),
+            extra[4].to_string_lossy().into_owned(),
+            extra[5].to_string_lossy().into_owned(),
+        ))
     };
 
     run_component(path, manual)
@@ -56,7 +63,9 @@ fn run_component(path: PathBuf, manual: Option<ManualRun>) -> Result<()> {
     wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
     linker.instance("gams:runtime/runtime@1.0.0")?.func_wrap(
         "call",
-        |mut cx, (target, args): (String, String)| -> Result<(std::result::Result<String, String>,)> {
+        |mut cx,
+         (target, args): (String, String)|
+         -> Result<(std::result::Result<String, String>,)> {
             if target != "e2e/echo" || args != "[\"hello\",7]" {
                 return Err(wasmtime::Error::msg(format!(
                     "unexpected gams:runtime/runtime.call({target:?}, {args:?})"
@@ -67,7 +76,8 @@ fn run_component(path: PathBuf, manual: Option<ManualRun>) -> Result<()> {
         },
     )?;
 
-    let fixtures = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../build.nosync/runtime-fixtures");
+    let fixtures =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../build.nosync/runtime-fixtures");
     if manual.is_none() {
         std::fs::create_dir_all(fixtures.join("nested/deep"))?;
         for (name, source) in [
@@ -83,7 +93,10 @@ fn run_component(path: PathBuf, manual: Option<ManualRun>) -> Result<()> {
         ] { std::fs::write(fixtures.join(name), source)?; }
     }
     let mut wasi = WasiCtx::builder();
-    let preopen = manual.as_ref().map(|(_, root, _, _, _)| root).unwrap_or(&fixtures);
+    let preopen = manual
+        .as_ref()
+        .map(|(_, root, _, _, _)| root)
+        .unwrap_or(&fixtures);
     wasi.preopened_dir(preopen, "/project", DirPerms::READ, FilePerms::READ)?;
     let mut store = Store::new(
         &engine,
@@ -105,8 +118,17 @@ fn run_component(path: PathBuf, manual: Option<ManualRun>) -> Result<()> {
         .ok_or_else(|| wasmtime::Error::msg("run export is not a function"))?
         .typed::<(&str, Option<&str>, Option<&str>, Option<&str>), (std::result::Result<String, String>,)>(&store)?;
     if let Some((source, _, entry, args, path)) = manual {
-        fn optional(s: &str) -> Option<&str> { if s == "-" { None } else { Some(s) } }
-        let (value,) = run.call(&mut store, (&source, optional(&entry), optional(&args), optional(&path)))?;
+        fn optional(s: &str) -> Option<&str> {
+            if s == "-" {
+                None
+            } else {
+                Some(s)
+            }
+        }
+        let (value,) = run.call(
+            &mut store,
+            (&source, optional(&entry), optional(&args), optional(&path)),
+        )?;
         match value {
             Ok(value) => println!("{value}"),
             Err(message) => return Err(wasmtime::Error::msg(message)),
@@ -154,9 +176,15 @@ fn run_component(path: PathBuf, manual: Option<ManualRun>) -> Result<()> {
             (Err(actual), Err(expected)) => actual.contains(expected),
             _ => false,
         };
-        if !matches { return Err(wasmtime::Error::msg(format!("case {index} mismatch: {value:?}, expected {expected:?}"))); }
+        if !matches {
+            return Err(wasmtime::Error::msg(format!(
+                "case {index} mismatch: {value:?}, expected {expected:?}"
+            )));
+        }
     }
-    if store.data().bridge_calls != 1 { return Err(wasmtime::Error::msg("unexpected bridge count")); }
+    if store.data().bridge_calls != 1 {
+        return Err(wasmtime::Error::msg("unexpected bridge count"));
+    }
     println!("Lua component E2E passed: {} runtime cases", cases.len());
     Ok(())
 }

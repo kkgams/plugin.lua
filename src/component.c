@@ -99,7 +99,8 @@ static int str_ends_with(const char *s, const char *suffix) {
   return memcmp(s + (s_len - suffix_len), suffix, suffix_len) == 0;
 }
 
-static char *dup_with_optional_lua_suffix(const char *name, int add_lua_suffix) {
+static char *dup_with_optional_lua_suffix(const char *name,
+                                          int add_lua_suffix) {
   size_t len = strlen(name);
   size_t extra = add_lua_suffix ? 4u : 0u;
   char *result = (char *)malloc(len + extra + 1u);
@@ -134,7 +135,9 @@ static char *dup_dots_to_slashes(const char *name, int add_lua_suffix) {
   return result;
 }
 
-static int str_equals(const char *a, const char *b) { return strcmp(a, b) == 0; }
+static int str_equals(const char *a, const char *b) {
+  return strcmp(a, b) == 0;
+}
 
 static void set_component_string(lua_plugin_string_t *ret, const char *text,
                                  size_t len) {
@@ -466,19 +469,26 @@ static int json_encode_string(StrBuf *out, const char *s, size_t len) {
   for (i = 0; i < len; i++) {
     unsigned char c = (unsigned char)s[i];
     if (c == '"') {
-      if (!sb_append_len(out, "\\\"", 2u)) return 0;
+      if (!sb_append_len(out, "\\\"", 2u))
+        return 0;
     } else if (c == '\\') {
-      if (!sb_append_len(out, "\\\\", 2u)) return 0;
+      if (!sb_append_len(out, "\\\\", 2u))
+        return 0;
     } else if (c == '\b') {
-      if (!sb_append_len(out, "\\b", 2u)) return 0;
+      if (!sb_append_len(out, "\\b", 2u))
+        return 0;
     } else if (c == '\f') {
-      if (!sb_append_len(out, "\\f", 2u)) return 0;
+      if (!sb_append_len(out, "\\f", 2u))
+        return 0;
     } else if (c == '\n') {
-      if (!sb_append_len(out, "\\n", 2u)) return 0;
+      if (!sb_append_len(out, "\\n", 2u))
+        return 0;
     } else if (c == '\r') {
-      if (!sb_append_len(out, "\\r", 2u)) return 0;
+      if (!sb_append_len(out, "\\r", 2u))
+        return 0;
     } else if (c == '\t') {
-      if (!sb_append_len(out, "\\t", 2u)) return 0;
+      if (!sb_append_len(out, "\\t", 2u))
+        return 0;
     } else if (c < 0x20u) {
       char esc[6];
       esc[0] = '\\';
@@ -487,9 +497,11 @@ static int json_encode_string(StrBuf *out, const char *s, size_t len) {
       esc[3] = '0';
       esc[4] = hex[(c >> 4) & 0x0Fu];
       esc[5] = hex[c & 0x0Fu];
-      if (!sb_append_len(out, esc, sizeof(esc))) return 0;
+      if (!sb_append_len(out, esc, sizeof(esc)))
+        return 0;
     } else {
-      if (!sb_append_c(out, (char)c)) return 0;
+      if (!sb_append_c(out, (char)c))
+        return 0;
     }
   }
   return sb_append_c(out, '"');
@@ -523,15 +535,14 @@ static int json_table_shape(lua_State *L, int idx, lua_Integer *out_max,
   return 1;
 }
 
-static int json_resolve_table_shape(lua_State *L, int idx,
-                                    lua_Integer *out_max,
+static int json_resolve_table_shape(lua_State *L, int idx, lua_Integer *out_max,
                                     int *out_is_array) {
   int inferred_is_array = 0;
   lua_Integer inferred_max = 0;
-  int marked_object = json_table_has_metatable(
-      L, idx, &json_object_metatable_registry_key);
-  int marked_array = json_table_has_metatable(
-      L, idx, &json_array_metatable_registry_key);
+  int marked_object =
+      json_table_has_metatable(L, idx, &json_object_metatable_registry_key);
+  int marked_array =
+      json_table_has_metatable(L, idx, &json_array_metatable_registry_key);
 
   json_table_shape(L, idx, &inferred_max, &inferred_is_array);
   if (marked_object) {
@@ -541,8 +552,8 @@ static int json_resolve_table_shape(lua_State *L, int idx,
   }
   if (marked_array) {
     if (!inferred_is_array) {
-      return luaL_error(
-          L, "json.encode: marked array must contain only dense positive integer keys");
+      return luaL_error(L, "json.encode: marked array must contain only dense "
+                           "positive integer keys");
     }
     *out_max = inferred_max;
     *out_is_array = 1;
@@ -630,9 +641,11 @@ static int json_encode_table(lua_State *L, int idx, StrBuf *out,
   }
   if (is_array) {
     lua_Integer k;
-    if (!sb_append_c(out, '[')) return 0;
+    if (!sb_append_c(out, '['))
+      return 0;
     for (k = 1; k <= max_idx; k++) {
-      if (k > 1 && !sb_append_c(out, ',')) return 0;
+      if (k > 1 && !sb_append_c(out, ','))
+        return 0;
       lua_geti(L, idx, k);
       if (!json_encode_value(L, -1, out, seen, seen_count, depth + 1)) {
         lua_pop(L, 1);
@@ -643,7 +656,8 @@ static int json_encode_table(lua_State *L, int idx, StrBuf *out,
     return sb_append_c(out, ']');
   }
 
-  if (!sb_append_c(out, '{')) return 0;
+  if (!sb_append_c(out, '{'))
+    return 0;
   i = 0;
   lua_pushnil(L);
   while (lua_next(L, idx) != 0) {
@@ -731,7 +745,8 @@ static int lua_json_encode(lua_State *L) {
   return 1;
 }
 
-static int bytes_contains_literal(const char *s, size_t s_len, const char *needle) {
+static int bytes_contains_literal(const char *s, size_t s_len,
+                                  const char *needle) {
   size_t needle_len = strlen(needle);
   size_t i;
   if (needle_len == 0) {
@@ -781,14 +796,16 @@ static int lua_host_raw_call(lua_State *L) {
   memset(&err, 0, sizeof(err));
 
   if (!gams_runtime_runtime_call(&target_string, &args_string, &ret, &err)) {
-    const char *message = err.ptr != NULL ? (const char *)err.ptr : "host.call failed";
+    const char *message =
+        err.ptr != NULL ? (const char *)err.ptr : "host.call failed";
     size_t message_len = err.len > 0 ? err.len : 16u;
     lua_pushlstring(L, message, message_len);
     free(err.ptr);
     return lua_error(L);
   }
 
-  lua_pushlstring(L, (const char *)(ret.ptr != NULL ? ret.ptr : (uint8_t *)""), ret.len);
+  lua_pushlstring(L, (const char *)(ret.ptr != NULL ? ret.ptr : (uint8_t *)""),
+                  ret.len);
   free(ret.ptr);
   return 1;
 }
@@ -906,14 +923,16 @@ static int try_fs_read_candidate(const char *candidate, uint8_t **out_data,
   for (i = 0; i < preopens.len; i++) {
     lua_plugin_string_t *preopen_path = &preopens.ptr[i].f1;
     size_t relative_offset = 0;
-    if (preopen_path_matches(preopen_path, candidate, candidate_len, &relative_offset) &&
+    if (preopen_path_matches(preopen_path, candidate, candidate_len,
+                             &relative_offset) &&
         preopen_path->len >= best_prefix_len) {
       best = i;
       best_prefix_len = preopen_path->len;
       best_relative_offset = relative_offset;
     }
   }
-  if (best == (size_t)-1 && preopens.len > 0 && candidate_len > 0 && candidate[0] != '/') {
+  if (best == (size_t)-1 && preopens.len > 0 && candidate_len > 0 &&
+      candidate[0] != '/') {
     best = 0;
     best_relative_offset = 0;
   }
@@ -925,8 +944,9 @@ static int try_fs_read_candidate(const char *candidate, uint8_t **out_data,
   relative.ptr = (uint8_t *)(candidate + best_relative_offset);
   relative.len = candidate_len - best_relative_offset;
   if (!wasi_filesystem_types_method_descriptor_open_at(
-          wasi_filesystem_types_borrow_descriptor(preopens.ptr[best].f0), 0, &relative, 0,
-          WASI_FILESYSTEM_TYPES_DESCRIPTOR_FLAGS_READ, &file, &code)) {
+          wasi_filesystem_types_borrow_descriptor(preopens.ptr[best].f0), 0,
+          &relative, 0, WASI_FILESYSTEM_TYPES_DESCRIPTOR_FLAGS_READ, &file,
+          &code)) {
     wasi_filesystem_preopens_list_tuple2_own_descriptor_string_free(&preopens);
     return 0;
   }
@@ -936,17 +956,20 @@ static int try_fs_read_candidate(const char *candidate, uint8_t **out_data,
     lua_plugin_tuple2_list_u8_bool_t chunk;
     memset(&chunk, 0, sizeof(chunk));
     if (!wasi_filesystem_types_method_descriptor_read(
-            wasi_filesystem_types_borrow_descriptor(file), 65536, offset, &chunk, &code)) {
+            wasi_filesystem_types_borrow_descriptor(file), 65536, offset,
+            &chunk, &code)) {
       sb_free(&out);
       wasi_filesystem_types_descriptor_drop_own(file);
-      wasi_filesystem_preopens_list_tuple2_own_descriptor_string_free(&preopens);
+      wasi_filesystem_preopens_list_tuple2_own_descriptor_string_free(
+          &preopens);
       return -1;
     }
     if (!sb_append_len(&out, (const char *)chunk.f0.ptr, chunk.f0.len)) {
       lua_plugin_list_u8_free(&chunk.f0);
       sb_free(&out);
       wasi_filesystem_types_descriptor_drop_own(file);
-      wasi_filesystem_preopens_list_tuple2_own_descriptor_string_free(&preopens);
+      wasi_filesystem_preopens_list_tuple2_own_descriptor_string_free(
+          &preopens);
       return -1;
     }
     offset += chunk.f0.len;
@@ -979,7 +1002,8 @@ static int lua_require_fs_searcher(lua_State *L) {
 
   candidates[candidate_count++] = dup_with_optional_lua_suffix(module_name, 0);
   if (!has_lua_suffix) {
-    candidates[candidate_count++] = dup_with_optional_lua_suffix(module_name, 1);
+    candidates[candidate_count++] =
+        dup_with_optional_lua_suffix(module_name, 1);
   }
   if (has_dot) {
     candidates[candidate_count++] = dup_dots_to_slashes(module_name, 0);
@@ -1113,18 +1137,23 @@ static int lua_fs_read_text(lua_State *L) {
   read_status = try_fs_read_candidate(path_z, &file_data, &file_len);
 
   if (read_status < 0) {
-    lua_pushfstring(L, "fs.read_text failed for '%s': transport failed", path_z);
+    lua_pushfstring(L, "fs.read_text failed for '%s': transport failed",
+                    path_z);
     free(path_z);
     return lua_error(L);
   }
   if (read_status == 0) {
-    lua_pushfstring(L, "fs.read_text failed for '%s': file not found or not readable", path_z);
+    lua_pushfstring(
+        L, "fs.read_text failed for '%s': file not found or not readable",
+        path_z);
     free(path_z);
     return lua_error(L);
   }
 
   free(path_z);
-  lua_pushlstring(L, (const char *)(file_data != NULL ? file_data : (uint8_t *)""), file_len);
+  lua_pushlstring(L,
+                  (const char *)(file_data != NULL ? file_data : (uint8_t *)""),
+                  file_len);
   free(file_data);
   return 1;
 }
@@ -1199,28 +1228,34 @@ static void open_lua_libs(lua_State *L) {
 #include "runtime.h"
 
 static void push_optional_string(lua_State *L, lua_plugin_string_t *value) {
-  if (value == NULL) lua_pushnil(L);
-  else lua_pushlstring(L, (const char *)value->ptr, value->len);
+  if (value == NULL)
+    lua_pushnil(L);
+  else
+    lua_pushlstring(L, (const char *)value->ptr, value->len);
 }
 
 static int run_script(lua_State *L, lua_plugin_string_t *source,
-                      lua_plugin_string_t *entry, lua_plugin_string_t *args_json,
+                      lua_plugin_string_t *entry,
+                      lua_plugin_string_t *args_json,
                       lua_plugin_string_t *source_path) {
-  int status = luaL_loadbufferx(L, runtime_bootstrap, sizeof(runtime_bootstrap) - 1,
-                                "=runtime", "t");
-  if (status != LUA_OK) return status;
+  int status = luaL_loadbufferx(L, runtime_bootstrap,
+                                sizeof(runtime_bootstrap) - 1, "=runtime", "t");
+  if (status != LUA_OK)
+    return status;
   status = lua_pcall(L, 0, 1, 0);
-  if (status != LUA_OK) return status;
+  if (status != LUA_OK)
+    return status;
   push_optional_string(L, source);
   push_optional_string(L, entry);
   push_optional_string(L, args_json);
   push_optional_string(L, source_path);
   status = lua_pcall(L, 4, 1, 0);
-  if (status != LUA_OK) return status;
+  if (status != LUA_OK)
+    return status;
   if (pending_host_error != NULL || pending_host_error_len > 0) {
-    lua_pushlstring(L,
-                    pending_host_error != NULL ? pending_host_error : "host.call failed",
-                    pending_host_error_len > 0 ? pending_host_error_len : 16u);
+    lua_pushlstring(
+        L, pending_host_error != NULL ? pending_host_error : "host.call failed",
+        pending_host_error_len > 0 ? pending_host_error_len : 16u);
     return LUA_ERRRUN;
   }
   return LUA_OK;
@@ -1247,8 +1282,10 @@ static int encode_return_value(lua_State *L, lua_plugin_string_t *ret) {
   return 1;
 }
 
-bool exports_gams_lua_lua_run(lua_plugin_string_t *source, lua_plugin_string_t *entry,
-                              lua_plugin_string_t *args_json, lua_plugin_string_t *source_path,
+bool exports_gams_lua_lua_run(lua_plugin_string_t *source,
+                              lua_plugin_string_t *entry,
+                              lua_plugin_string_t *args_json,
+                              lua_plugin_string_t *source_path,
                               lua_plugin_string_t *ret,
                               lua_plugin_string_t *err) {
   lua_State *L;
